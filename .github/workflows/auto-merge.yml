@@ -1,17 +1,17 @@
-name: Enable Auto-Merge on PR Creation
+name: Auto Merge on Approval
 
 on:
-  pull_request:
-    types: [opened, reopened, ready_for_review]
+  pull_request_review:
+    types: [submitted]
 
 permissions:
   contents: write
   pull-requests: write
 
 jobs:
-  enable-auto-merge:
+  auto-merge:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.draft == false
+    if: github.event.review.state == 'approved'
     
     steps:
       - name: PR情報を表示
@@ -19,56 +19,36 @@ jobs:
           echo "PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}"
           echo "Base: ${{ github.event.pull_request.base.ref }}"
           echo "Head: ${{ github.event.pull_request.head.ref }}"
-          echo "Author: ${{ github.event.pull_request.user.login }}"
+          echo "Reviewer: ${{ github.event.review.user.login }}"
 
-      - name: GitHubの自動マージを有効化
-        uses: actions/github-script@v7
-        with:
-          script: |
-            try {
-              // GraphQL mutation を使用して auto-merge を有効化
-              const mutation = `
-                mutation($pullRequestId: ID!) {
-                  enablePullRequestAutoMerge(input: {
-                    pullRequestId: $pullRequestId,
-                    mergeMethod: SQUASH
-                  }) {
-                    pullRequest {
-                      id
-                      number
-                      autoMergeRequest {
-                        enabledAt
-                        enabledBy {
-                          login
-                        }
-                      }
-                    }
-                  }
-                }
-              `;
-              
-              const result = await github.graphql(mutation, {
-                pullRequestId: context.payload.pull_request.node_id
-              });
-              
-              console.log('✅ 自動マージが有効化されました');
-              console.log(`PR #${result.enablePullRequestAutoMerge.pullRequest.number}`);
-              console.log(`有効化時刻: ${result.enablePullRequestAutoMerge.pullRequest.autoMergeRequest.enabledAt}`);
-              console.log('');
-              console.log('📝 次のステップ:');
-              console.log('  1. ブランチ保護ルールで要求される承認を取得');
-              console.log('  2. すべてのステータスチェックが成功');
-              console.log('  3. → 自動的にSquash and Mergeが実行されます');
-            } catch (error) {
-              if (error.message && error.message.includes('not allowed to enable auto-merge')) {
-                console.log('ℹ️  このPRでは自動マージを有効化できません');
-                console.log('理由: ブランチ保護ルールまたは権限の制約');
-                console.log('');
-                console.log('💡 回避策:');
-                console.log('  - 承認後、手動でマージしてください');
-                console.log('  - またはブランチ保護ルールの設定を確認してください');
-              } else {
-                console.error('❌ エラーが発生しました:', error.message);
-                // エラーでもワークフローは成功扱いにする（致命的ではないため）
-              }
-            }
+      - name: 自動マージを実行
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          echo "PR #${PR_NUMBER} が承認されました。自動マージを開始します..."
+          
+          # PRがDraftかどうかをチェック
+          IS_DRAFT=$(gh pr view ${PR_NUMBER} --repo ${{ github.repository }} --json isDraft --jq '.isDraft')
+          
+          if [ "$IS_DRAFT" = "true" ]; then
+            echo "⚠️ このPRはDraft状態です。Draft状態のPRは自動マージされません。"
+            echo "Ready for reviewに変更してから再度Approveしてください。"
+            exit 0
+          fi
+          
+          # PRのマージ可能状態を確認
+          echo "📋 PR状態を確認中..."
+          gh pr view ${PR_NUMBER} --repo ${{ github.repository }} --json mergeable,mergeStateStatus --jq '.mergeable,.mergeStateStatus'
+          
+          # 自動マージを有効化（スカッシュマージ、ブランチ削除）
+          echo "🔄 自動マージを設定中..."
+          gh pr merge ${PR_NUMBER} --repo ${{ github.repository }} --squash --auto --delete-branch
+          
+          echo "✅ PR #${PR_NUMBER} の自動マージが有効化されました"
+          echo ""
+          echo "📝 次のステップ:"
+          echo "  1. ブランチ保護ルールで要求される承認を取得"
+          echo "  2. すべてのステータスチェックが成功"
+          echo "  3. → 自動的にSquash and Mergeが実行されます"
+          echo "  4. マージ後、ブランチが自動削除されます"
