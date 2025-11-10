@@ -15,11 +15,16 @@ jobs:
     
     steps:
       - name: PR情報を表示
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BASE: ${{ github.event.pull_request.base.ref }}
+          PR_HEAD: ${{ github.event.pull_request.head.ref }}
+          REVIEWER: ${{ github.event.review.user.login }}
         run: |
-          echo "PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}"
-          echo "Base: ${{ github.event.pull_request.base.ref }}"
-          echo "Head: ${{ github.event.pull_request.head.ref }}"
-          echo "Reviewer: ${{ github.event.review.user.login }}"
+          echo "PR #${{ github.event.pull_request.number }}: ${PR_TITLE}"
+          echo "Base: ${PR_BASE}"
+          echo "Head: ${PR_HEAD}"
+          echo "Reviewer: ${REVIEWER}"
 
       - name: 自動マージを実行
         env:
