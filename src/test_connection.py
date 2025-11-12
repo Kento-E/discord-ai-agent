@@ -30,12 +30,12 @@ def test_connection():
     try:
         guild_id = int(guild_id_str)
     except ValueError:
-        print(f'❌ エラー: TARGET_GUILD_ID が無効な形式です: {guild_id_str}')
+        print('❌ エラー: TARGET_GUILD_ID が無効な形式です（数値である必要があります）')
         return False
     
     print('📝 環境変数の確認:')
     print(f'  - DISCORD_TOKEN: {"設定済み" if token else "未設定"} (長さ: {len(token) if token else 0})')
-    print(f'  - TARGET_GUILD_ID: {guild_id}')
+    print(f'  - TARGET_GUILD_ID: 設定済み')
     print()
     
     # Discord Clientのセットアップ
@@ -50,8 +50,7 @@ def test_connection():
     async def on_ready():
         nonlocal success, error_message
         try:
-            print(f'✅ Discord接続成功: {client.user}')
-            print(f'   ユーザーID: {client.user.id}')
+            print('✅ Discord接続成功: Bot認証完了')
             print()
             
             # ギルドの取得
@@ -62,7 +61,7 @@ def test_connection():
                 try:
                     guild = await client.fetch_guild(guild_id)
                 except discord.NotFound:
-                    error_message = f'指定されたギルドが見つかりません: {guild_id}'
+                    error_message = '指定されたギルドが見つかりません'
                     print(f'❌ エラー: {error_message}')
                     print('   Botがこのサーバーに参加していない可能性があります')
                     await client.close()
@@ -74,10 +73,7 @@ def test_connection():
                     await client.close()
                     return
             
-            print(f'✅ ギルド確認成功:')
-            print(f'   名前: {guild.name}')
-            print(f'   ID: {guild.id}')
-            print(f'   メンバー数: {guild.member_count if guild.member_count else "不明"}')
+            print('✅ ギルド確認成功: アクセス権限を確認しました')
             print()
             
             success = True
