@@ -79,7 +79,7 @@ jobs:
               -H "Accept: application/vnd.github+json" \
               -H "X-GitHub-Api-Version: 2022-11-28" \
               "/repos/${{ github.repository }}/pulls/${PR_NUM}/update-branch" \
-              -f expected_head_sha="${CURRENT_HEAD_SHA}" 2>&1) || UPDATE_STATUS=$?
+              2>&1) || UPDATE_STATUS=$?
             
             if [ "${UPDATE_STATUS}" -eq 0 ]; then
               echo "  ✅ PR #${PR_NUM} を正常に更新しました"
