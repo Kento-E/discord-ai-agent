@@ -42,6 +42,38 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: 暗号化された知識データをダウンロード
+        id: download-artifact
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: knowledge-data-encrypted
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 知識データを復号化
+        if: steps.download-artifact.outcome == 'success'
+        env:
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+        run: |
+          echo "🔓 知識データを復号化中..."
+          
+          if [ -f knowledge-data.enc ]; then
+            openssl enc -aes-256-cbc -d -pbkdf2 -pass env:ENCRYPTION_KEY -in knowledge-data.enc | tar xzf - -C ./
+            echo "✅ 復号化完了"
+            ls -la data/
+          else
+            echo "⚠️ 暗号化データファイルが見つかりません"
+          fi
+
+      - name: 知識データの確認
+        run: |
+          if [ ! -f data/embeddings.json ]; then
+            echo "⚠️ 警告: 知識データが存在しません"
+            echo "知識データを生成するには、'知識データの生成と保存' ワークフローを実行してください"
+          else
+            echo "✅ 知識データが利用可能です"
+          fi
+
       - name: Discord Botを起動
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}

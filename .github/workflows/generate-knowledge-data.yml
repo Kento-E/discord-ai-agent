@@ -1,0 +1,95 @@
+name: 知識データの生成と保存
+
+on:
+  workflow_dispatch:  # 手動実行を許可
+    inputs:
+      reason:
+        description: '実行理由（任意）'
+        required: false
+        default: '知識データの更新'
+
+permissions:
+  contents: read
+
+jobs:
+  generate-and-encrypt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Pythonをセットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 依存パッケージをインストール
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: メッセージを取得
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          TARGET_GUILD_ID: ${{ secrets.TARGET_GUILD_ID }}
+        run: |
+          echo "📥 Discordサーバーからメッセージを取得中..."
+          python src/fetch_messages.py
+
+      - name: 埋め込みデータを生成
+        run: |
+          echo "🔄 埋め込みデータを生成中..."
+          python src/prepare_dataset.py
+
+      - name: 知識データを暗号化
+        env:
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+        run: |
+          echo "🔐 知識データを暗号化中..."
+          
+          # dataディレクトリ内のJSONファイルを圧縮・暗号化
+          tar czf - data/*.json | openssl enc -aes-256-cbc -salt -pbkdf2 -pass env:ENCRYPTION_KEY -out knowledge-data.enc
+          
+          echo "✅ 暗号化完了"
+          ls -lh knowledge-data.enc
+
+      - name: 暗号化データをアーティファクトとして保存
+        uses: actions/upload-artifact@v4
+        with:
+          name: knowledge-data-encrypted
+          path: knowledge-data.enc
+          retention-days: 90
+          compression-level: 0  # 既に圧縮済み
+
+      - name: 実行結果をサマリーに出力
+        if: always()
+        run: |
+          if [ '${{ job.status }}' == 'success' ]; then
+            echo "## ✅ 知識データの生成: 成功" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "知識データが正常に生成され、暗号化されてアーティファクトに保存されました。" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 📦 保存情報" >> $GITHUB_STEP_SUMMARY
+            echo "- **アーティファクト名**: knowledge-data-encrypted" >> $GITHUB_STEP_SUMMARY
+            echo "- **保持期間**: 90日" >> $GITHUB_STEP_SUMMARY
+            echo "- **暗号化方式**: AES-256-CBC" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ❌ 知識データの生成: 失敗" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "知識データの生成中にエラーが発生しました。" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 確認事項" >> $GITHUB_STEP_SUMMARY
+            echo "1. **DISCORD_TOKEN**: 正しいBotトークンが設定されているか" >> $GITHUB_STEP_SUMMARY
+            echo "2. **TARGET_GUILD_ID**: 正しいサーバーIDが設定されているか" >> $GITHUB_STEP_SUMMARY
+            echo "3. **ENCRYPTION_KEY**: 暗号鍵が設定されているか" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📝 実行情報" >> $GITHUB_STEP_SUMMARY
+          echo "- **実行理由**: ${{ github.event.inputs.reason || '知識データの更新' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **実行者**: @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **実行日時**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
