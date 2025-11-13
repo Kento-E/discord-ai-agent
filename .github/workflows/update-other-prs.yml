@@ -69,9 +69,6 @@ jobs:
             # ブランチ更新を実行
             echo "  🔄 ブランチを更新中..."
             
-            # 現在のhead SHAを取得
-            CURRENT_HEAD_SHA=$(gh api /repos/${{ github.repository }}/pulls/${PR_NUM} --jq .head.sha)
-            
             # update-branchを実行
             UPDATE_STATUS=0
             UPDATE_RESULT=$(gh api \
