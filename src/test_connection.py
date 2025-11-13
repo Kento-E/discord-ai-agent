@@ -10,12 +10,51 @@ import sys
 import discord
 
 
+# 詳細情報を保存するグローバル変数
+detailed_info = {
+    'bot_name': None,
+    'bot_id': None,
+    'guild_name': None,
+    'guild_id': None,
+    'member_count': None
+}
+
+
+def output_detailed_info():
+    """詳細情報をGitHub Step Summaryに出力"""
+    summary_file = os.environ.get('GITHUB_STEP_SUMMARY')
+    if not summary_file:
+        return
+    
+    try:
+        with open(summary_file, 'a', encoding='utf-8') as f:
+            f.write('\n---\n\n')
+            f.write('## 📋 詳細情報（リポジトリのActions権限を持つユーザーが閲覧可能）\n\n')
+            
+            if detailed_info['bot_name']:
+                f.write(f"**Bot名**: {detailed_info['bot_name']}\n\n")
+            if detailed_info['bot_id']:
+                f.write(f"**Bot ID**: {detailed_info['bot_id']}\n\n")
+            if detailed_info['guild_name']:
+                f.write(f"**サーバー名**: {detailed_info['guild_name']}\n\n")
+            if detailed_info['guild_id']:
+                f.write(f"**サーバーID**: {detailed_info['guild_id']}\n\n")
+            if detailed_info['member_count'] is not None:
+                f.write(f"**メンバー数**: {detailed_info['member_count']}\n\n")
+            
+            f.write('> ⚠️ この情報はリポジトリのActionsタブにアクセスできるユーザーが閲覧できます。\n')
+            f.write('> 公開ログには表示されません。\n')
+    except Exception as e:
+        print(f'⚠️ 詳細情報の出力中にエラーが発生しました: {e}')
+
+
 def test_connection():
     """Discord APIとの疎通を確認する"""
     
     # 環境変数の取得
     token = os.environ.get('DISCORD_TOKEN')
     guild_id_str = os.environ.get('TARGET_GUILD_ID')
+    show_details = os.environ.get('SHOW_DETAILS', 'false').lower() == 'true'
     
     # 環境変数の存在確認
     if not token:
@@ -30,12 +69,12 @@ def test_connection():
     try:
         guild_id = int(guild_id_str)
     except ValueError:
-        print(f'❌ エラー: TARGET_GUILD_ID が無効な形式です: {guild_id_str}')
+        print('❌ エラー: TARGET_GUILD_ID が無効な形式です（数値である必要があります）')
         return False
     
     print('📝 環境変数の確認:')
     print(f'  - DISCORD_TOKEN: {"設定済み" if token else "未設定"} (長さ: {len(token) if token else 0})')
-    print(f'  - TARGET_GUILD_ID: {guild_id}')
+    print(f'  - TARGET_GUILD_ID: 設定済み')
     print()
     
     # Discord Clientのセットアップ
@@ -50,8 +89,12 @@ def test_connection():
     async def on_ready():
         nonlocal success, error_message
         try:
-            print(f'✅ Discord接続成功: {client.user}')
-            print(f'   ユーザーID: {client.user.id}')
+            # 詳細情報を保存（show_detailsがtrueの場合のみstep summaryに出力）
+            if show_details:
+                detailed_info['bot_name'] = str(client.user)
+                detailed_info['bot_id'] = client.user.id
+            
+            print('✅ Discord接続成功: Bot認証完了')
             print()
             
             # ギルドの取得
@@ -62,7 +105,7 @@ def test_connection():
                 try:
                     guild = await client.fetch_guild(guild_id)
                 except discord.NotFound:
-                    error_message = f'指定されたギルドが見つかりません: {guild_id}'
+                    error_message = '指定されたギルドが見つかりません'
                     print(f'❌ エラー: {error_message}')
                     print('   Botがこのサーバーに参加していない可能性があります')
                     await client.close()
@@ -74,10 +117,13 @@ def test_connection():
                     await client.close()
                     return
             
-            print(f'✅ ギルド確認成功:')
-            print(f'   名前: {guild.name}')
-            print(f'   ID: {guild.id}')
-            print(f'   メンバー数: {guild.member_count if guild.member_count else "不明"}')
+            # 詳細情報を保存（show_detailsがtrueの場合のみstep summaryに出力）
+            if show_details:
+                detailed_info['guild_name'] = guild.name
+                detailed_info['guild_id'] = guild.id
+                detailed_info['member_count'] = guild.member_count if guild.member_count else "不明"
+            
+            print('✅ ギルド確認成功: アクセス権限を確認しました')
             print()
             
             success = True
@@ -87,6 +133,9 @@ def test_connection():
             error_message = str(e)
             print(f'❌ 予期しないエラーが発生しました: {error_message}')
         finally:
+            # 詳細情報を出力（show_detailsがtrueの場合、取得できた情報のみ出力）
+            if show_details:
+                output_detailed_info()
             await client.close()
     
     @client.event
