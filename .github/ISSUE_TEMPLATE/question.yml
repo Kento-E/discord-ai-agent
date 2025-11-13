@@ -85,7 +85,7 @@ body:
   - type: textarea
     id: copilot-request
     attributes:
-      label: GitHub Copilotへの質問（必須）
+      label: GitHub Copilotへの質問（任意）
       description: GitHub Copilotに調査・回答を依頼してください。
       placeholder: "@copilot 上記の質問について調査し、回答してください"
       value: "@copilot 上記の質問について調査し、回答してください"
