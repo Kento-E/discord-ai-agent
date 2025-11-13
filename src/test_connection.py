@@ -129,14 +129,13 @@ def test_connection():
             success = True
             print('🎉 すべての疎通テストに成功しました！')
             
-            # 詳細情報を出力（show_detailsがtrueの場合）
-            if show_details:
-                output_detailed_info()
-            
         except Exception as e:
             error_message = str(e)
             print(f'❌ 予期しないエラーが発生しました: {error_message}')
         finally:
+            # 詳細情報を出力（show_detailsがtrueの場合、取得できた情報のみ出力）
+            if show_details:
+                output_detailed_info()
             await client.close()
     
     @client.event
