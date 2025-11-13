@@ -80,6 +80,12 @@ Secretsの有効性は以下のタイミングで自動的にテストされま�
 **注意**：このテストは読み取り専用の操作のみを実行し、
 Discordサーバーへのメッセージ送信や通知は行いません。
 
+## GitHub Actions自動化機能
+
+このリポジトリには、PR管理やブランチ管理を自動化するGitHub Actionsワークフローが含まれています。
+
+詳細については、[.github/workflows/README.md](.github/workflows/README.md)を参照してください。
+
 ## ディレクトリ構成
 
 - src/: メインロジック
