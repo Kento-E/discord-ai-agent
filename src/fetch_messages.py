@@ -84,16 +84,9 @@ async def fetch_messages_from_guild(client, guild_id, message_limit=DEFAULT_MESS
         
         try:
             messages = []
-            async for message in channel.history(limit=message_limit):
-                # Botのメッセージはスキップ
-                if message.author.bot:
-                    continue
-                
-                # メッセージ内容が空の場合はスキップ
-                if not message.content.strip():
-                    continue
-                
-                messages.append({
+            # チャンネルごとにメッセージをバッチで取得して一度に追加（パフォーマンス最適化）
+            channel_messages = [
+                {
                     'id': message.id,
                     'channel_id': channel.id,
                     'channel_name': channel.name,
@@ -102,7 +95,11 @@ async def fetch_messages_from_guild(client, guild_id, message_limit=DEFAULT_MESS
                     'content': message.content,
                     'created_at': message.created_at.isoformat(),
                     'timestamp': message.created_at.timestamp()
-                })
+                }
+                async for message in channel.history(limit=message_limit)
+                if not message.author.bot and message.content.strip()
+            ]
+            messages.extend(channel_messages)
             
             all_messages.extend(messages)
             print(f'   → {len(messages)}件のメッセージを取得')
