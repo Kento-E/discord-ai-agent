@@ -35,7 +35,11 @@
 ```bash
 export DISCORD_TOKEN="your_bot_token_here"
 export TARGET_GUILD_ID="your_guild_id_here"
+# オプション: メッセージ取得から除外するチャンネル名（カンマ区切り）
+export EXCLUDED_CHANNELS="announcements,bot-commands,admin-only"
 ```
+
+**EXCLUDED_CHANNELS（オプション）**: メッセージ取得から除外したいチャンネル名をカンマ区切りで指定できます。指定しない場合はすべてのテキストチャンネルからメッセージを取得します。
 
 ### ステップ2: 依存パッケージのインストール
 
@@ -52,8 +56,9 @@ python src/fetch_messages.py
 **実行内容**：
 
 - 指定したDiscordサーバーから過去のメッセージを取得
-- 各チャンネルから最大1,000件のメッセージを取得
+- 各チャンネルから最大5,000件のメッセージを取得（`DEFAULT_MESSAGE_LIMIT`で設定）
 - Botのメッセージは除外
+- `EXCLUDED_CHANNELS`で指定したチャンネルは除外（オプション）
 - `data/messages.json` に保存
 
 **実行結果の例**：

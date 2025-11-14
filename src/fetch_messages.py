@@ -15,13 +15,14 @@ import sys
 # 環境変数から設定を読み取る
 TOKEN = os.environ.get('DISCORD_TOKEN')
 GUILD_ID_STR = os.environ.get('TARGET_GUILD_ID')
+EXCLUDED_CHANNELS_STR = os.environ.get('EXCLUDED_CHANNELS', '')  # カンマ区切りのチャンネル名
 
 # データ保存先
 DATA_DIR = os.path.join(os.path.dirname(__file__), '../data')
 OUTPUT_PATH = os.path.join(DATA_DIR, 'messages.json')
 
 # デフォルト設定
-DEFAULT_MESSAGE_LIMIT = 1000  # 各チャンネルから取得する最大メッセージ数
+DEFAULT_MESSAGE_LIMIT = 5000  # 各チャンネルから取得する最大メッセージ数
 
 def validate_environment():
     """環境変数の検証"""
@@ -47,7 +48,7 @@ def ensure_data_directory():
         os.makedirs(DATA_DIR)
         print(f'📁 dataディレクトリを作成しました: {DATA_DIR}')
 
-async def fetch_messages_from_guild(client, guild_id, message_limit=DEFAULT_MESSAGE_LIMIT):
+async def fetch_messages_from_guild(client, guild_id, message_limit=DEFAULT_MESSAGE_LIMIT, excluded_channels=None):
     """
     指定されたギルドからメッセージを取得
     
@@ -55,10 +56,13 @@ async def fetch_messages_from_guild(client, guild_id, message_limit=DEFAULT_MESS
         client: Discord Client
         guild_id: ギルドID
         message_limit: 各チャンネルから取得する最大メッセージ数
+        excluded_channels: 除外するチャンネル名のセット（オプション）
     
     Returns:
         メッセージのリスト
     """
+    if excluded_channels is None:
+        excluded_channels = set()
     guild = client.get_guild(guild_id)
     
     if guild is None:
@@ -80,6 +84,11 @@ async def fetch_messages_from_guild(client, guild_id, message_limit=DEFAULT_MESS
     all_messages = []
     
     for channel in guild.text_channels:
+        # 除外チャンネルリストに含まれている場合はスキップ
+        if channel.name in excluded_channels:
+            print(f'⏩ チャンネル #{channel.name} をスキップ（除外リストに含まれています）')
+            continue
+            
         print(f'📝 チャンネル #{channel.name} からメッセージを取得中...')
         
         try:
@@ -147,8 +156,11 @@ async def main():
         print()
         
         try:
+            # 除外チャンネルリストの作成
+            excluded_channels = [ch.strip() for ch in EXCLUDED_CHANNELS_STR.split(',') if ch.strip()]
+            
             # メッセージの取得
-            messages = await fetch_messages_from_guild(client, guild_id)
+            messages = await fetch_messages_from_guild(client, guild_id, excluded_channels=excluded_channels)
             
             if messages is None:
                 await client.close()

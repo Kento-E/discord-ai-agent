@@ -37,6 +37,7 @@ jobs:
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
           TARGET_GUILD_ID: ${{ secrets.TARGET_GUILD_ID }}
+          EXCLUDED_CHANNELS: ${{ secrets.EXCLUDED_CHANNELS }}
         run: |
           echo "📥 Discordサーバーからメッセージを取得中..."
           python src/fetch_messages.py
