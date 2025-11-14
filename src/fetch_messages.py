@@ -10,7 +10,7 @@ import discord
 import json
 import os
 import sys
-from datetime import datetime
+
 
 # 環境変数から設定を読み取る
 TOKEN = os.environ.get('DISCORD_TOKEN')

@@ -8,7 +8,7 @@ on:
         required: false
         default: '知識データの更新'
   schedule:
-    - cron: '0 0 */80 * *'  # 80日ごとに自動実行（アーティファクト保持期間90日に対する余裕を持たせた設定）
+    - cron: '0 0 1 */3 *'  # 3ヶ月ごとに自動実行（アーティファクト保持期間90日に対応）
 
 permissions:
   contents: read
@@ -51,6 +51,12 @@ jobs:
           ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
         run: |
           echo "🔐 知識データを暗号化中..."
+          
+          # 必要なデータファイルが存在するか確認
+          if [ ! -f data/messages.json ] || [ ! -f data/embeddings.json ]; then
+            echo "❌ エラー: 必要なデータファイルが見つかりません"
+            exit 1
+          fi
           
           # dataディレクトリ内のJSONファイルを圧縮・暗号化
           tar czf - data/*.json | openssl enc -aes-256-cbc -salt -pbkdf2 -pass env:ENCRYPTION_KEY -out knowledge-data.enc
