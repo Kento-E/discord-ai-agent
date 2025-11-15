@@ -102,8 +102,8 @@ history -c
 
 ## 関連ファイル
 
-- ワークフロー: `.github/workflows/generate-knowledge-data.yml`
-- ワークフロー: `.github/workflows/run-discord-bot.yml`
+- [generate-knowledge-data.yml](generate-knowledge-data.yml)
+- [run-discord-bot.yml](run-discord-bot.yml)
 
 ## 参考情報
 
