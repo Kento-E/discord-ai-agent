@@ -42,6 +42,49 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: 暗号化された知識データをダウンロード
+        id: download-artifact
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: knowledge-data-encrypted
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 知識データを復号化
+        if: steps.download-artifact.outcome == 'success'
+        env:
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+        run: |
+          echo "🔓 知識データを復号化中..."
+          
+          if [ -f knowledge-data.enc ]; then
+            if openssl enc -aes-256-cbc -d -pbkdf2 -pass env:ENCRYPTION_KEY -in knowledge-data.enc | tar xzf - -C ./; then
+              echo "✅ 復号化完了"
+              ls -la data/
+            else
+              echo "❌ エラー: 復号化に失敗しました"
+              echo "暗号鍵(ENCRYPTION_KEY)が正しいか確認してください"
+              exit 1
+            fi
+          else
+            echo "⚠️ 暗号化データファイルが見つかりません"
+            exit 1
+          fi
+
+      - name: 知識データの確認
+        run: |
+          if [ ! -f data/embeddings.json ]; then
+            echo "❌ エラー: 知識データが存在しません"
+            echo ""
+            echo "知識データを生成するには、以下のワークフローを実行してください:"
+            echo "  Actions → '知識データの生成と保存' → Run workflow"
+            echo ""
+            echo "詳細: .github/workflows/ENCRYPTION_KEY_SETUP.md を参照"
+            exit 1
+          else
+            echo "✅ 知識データが利用可能です"
+          fi
+
       - name: Discord Botを起動
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
@@ -75,10 +118,12 @@ jobs:
             echo "詳細なエラー内容は上記のログを確認してください。" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "### 確認事項" >> $GITHUB_STEP_SUMMARY
-            echo "1. **DISCORD_TOKEN**: 正しいBot トークンが設定されているか" >> $GITHUB_STEP_SUMMARY
-            echo "2. **TARGET_GUILD_ID**: 正しいサーバーIDが設定されているか" >> $GITHUB_STEP_SUMMARY
-            echo "3. **Bot権限**: Botがサーバーに参加しているか" >> $GITHUB_STEP_SUMMARY
-            echo "4. **Intent設定**: Discord Developer Portalで必要なIntentsが有効化されているか" >> $GITHUB_STEP_SUMMARY
+            echo "1. **知識データ**: '知識データの生成と保存' ワークフローを実行済みか" >> $GITHUB_STEP_SUMMARY
+            echo "2. **DISCORD_TOKEN**: 正しいBot トークンが設定されているか" >> $GITHUB_STEP_SUMMARY
+            echo "3. **TARGET_GUILD_ID**: 正しいサーバーIDが設定されているか" >> $GITHUB_STEP_SUMMARY
+            echo "4. **ENCRYPTION_KEY**: 暗号鍵が正しく設定されているか" >> $GITHUB_STEP_SUMMARY
+            echo "5. **Bot権限**: Botがサーバーに参加しているか" >> $GITHUB_STEP_SUMMARY
+            echo "6. **Intent設定**: Discord Developer Portalで必要なIntentsが有効化されているか" >> $GITHUB_STEP_SUMMARY
             echo "   - MESSAGE CONTENT INTENT" >> $GITHUB_STEP_SUMMARY
             echo "   - SERVER MEMBERS INTENT" >> $GITHUB_STEP_SUMMARY
             echo "   - GUILDS INTENT" >> $GITHUB_STEP_SUMMARY
