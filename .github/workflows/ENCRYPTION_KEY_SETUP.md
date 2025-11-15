@@ -9,9 +9,7 @@
 
 ## 暗号鍵の生成方法
 
-### 方法1: OpenSSL（推奨）
-
-最も一般的で信頼性の高い方法です。
+### OpenSSL
 
 ```bash
 openssl rand -base64 32
@@ -21,27 +19,6 @@ openssl rand -base64 32
 
 ```
 a8B7cD9eF2gH4iJ6kL8mN0pQ1rS3tU5vW7xY9zA1bC3=
-```
-
-### 方法2: Pythonスクリプト
-
-Python環境がある場合に使用できます。
-
-```python
-import secrets
-print(secrets.token_urlsafe(32))
-```
-
-**実行方法**:
-
-```bash
-python3 -c "import secrets; print(secrets.token_urlsafe(32))"
-```
-
-### 方法3: Linux/macOSコマンド
-
-```bash
-head -c 32 /dev/urandom | base64
 ```
 
 ## GitHub Secretsへの登録手順

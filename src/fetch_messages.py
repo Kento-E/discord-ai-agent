@@ -22,7 +22,7 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), '../data')
 OUTPUT_PATH = os.path.join(DATA_DIR, 'messages.json')
 
 # デフォルト設定
-DEFAULT_MESSAGE_LIMIT = 5000  # 各チャンネルから取得する最大メッセージ数
+DEFAULT_MESSAGE_LIMIT = 10000  # 各チャンネルから取得する最大メッセージ数
 
 def validate_environment():
     """環境変数の検証"""
