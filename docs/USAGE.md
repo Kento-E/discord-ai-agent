@@ -56,7 +56,7 @@ python src/fetch_messages.py
 **実行内容**：
 
 - 指定したDiscordサーバーから過去のメッセージを取得
-- 各チャンネルから最大5,000件のメッセージを取得（`DEFAULT_MESSAGE_LIMIT`で設定）
+- 各チャンネルから`DEFAULT_MESSAGE_LIMIT`で設定された件数のメッセージを取得
 - Botのメッセージは除外
 - `EXCLUDED_CHANNELS`で指定したチャンネルは除外（オプション）
 - `data/messages.json` に保存
