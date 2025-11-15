@@ -10,6 +10,7 @@ import discord
 import json
 import os
 import sys
+import traceback
 
 
 # 環境変数から設定を読み取る
@@ -194,7 +195,6 @@ async def main():
             
         except Exception as e:
             print(f'❌ エラー: {e}')
-            import traceback
             traceback.print_exc()
         
         finally:
