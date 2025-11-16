@@ -208,6 +208,12 @@ Discordサーバーに新しいメッセージが追加された場合、以下�
 # 1. 新しいメッセージを取得
 python src/fetch_messages.py
 
+# 2. 埋め込みデータを再生成
+python src/prepare_dataset.py
+
+# 3. Botを再起動
+python src/main.py
+```
 
 ## Encrypted Workflow System（暗号化ワークフローシステム）の使い方
 
@@ -246,11 +252,6 @@ python src/fetch_messages.py
 3. 「Run workflow」ボタンをクリック
 
 詳細なワークフロー内容やSecretsの設定方法は、[ワークフローファイル](../.github/workflows/generate-knowledge-data.yml)およびリポジトリのREADMEも参照してください。
-python src/prepare_dataset.py
-
-# 3. Botを再起動
-python src/main.py
-```
 
 ## まとめ
 
