@@ -4,7 +4,100 @@
 
 ## ワークフロー一覧
 
-### 1. Auto Merge on Approval (`auto-merge.yml`)
+### 1. 知識データのRelease自動アップロード (`upload-knowledge-to-release.yml`)
+
+#### 概要
+
+「知識データの生成と保存」ワークフローで作成された暗号化知識データを、GitHub Releaseとして自動的に公開するワークフローです。これにより、GitHub Actionsのアーティファクト保持期間（90日）に依存せず、知識データを永続的に保持できます。
+
+#### トリガー条件
+
+- イベント: `workflow_run` (completed)
+- 対象ワークフロー: 「知識データの生成と保存」
+- 条件: 元のワークフローが成功した場合のみ実行
+
+#### 動作
+
+1. 「知識データの生成と保存」ワークフローが成功したことを確認
+2. 暗号化された知識データ（`knowledge-data-encrypted` アーティファクト）をダウンロード
+3. タイムスタンプベースの一意なタグ名を生成（例: `knowledge-data-20241117-105300`）
+4. GitHub Releaseを作成し、暗号化データをアップロード
+5. 古いReleaseを自動削除（最新5件のみ保持）
+
+#### 必要な権限
+
+- `contents: write` - Release作成とタグ操作
+
+#### メリット
+
+- **永続的な保存**: GitHub Actionsのアーティファクト保持期間に依存しない
+- **アクセス性**: publicリポジトリでは誰でもダウンロード可能
+- **バージョン管理**: タイムスタンプ付きタグで履歴管理が容易
+- **自動クリーンアップ**: 最新5件のみ保持することでストレージを節約
+
+#### 注意事項
+
+- 元のワークフローが失敗した場合は実行されません
+- 最新5件より古いReleaseは自動的に削除されます
+- public リポジトリでの運用を想定しています
+
+### 2. 知識データの生成と保存 (`generate-knowledge-data.yml`)
+
+#### 概要
+
+Discordサーバーからメッセージを取得し、AI学習用の埋め込みデータを生成して暗号化するワークフローです。生成されたデータは、GitHub Actionsのアーティファクトとして保存され、さらに「知識データのRelease自動アップロード」ワークフローによってReleaseとして公開されます。
+
+#### トリガー条件
+
+- 手動実行（`workflow_dispatch`）
+- 定期実行（2ヶ月ごと）
+
+#### 動作
+
+1. Discordサーバーからメッセージを取得
+2. AI学習用の埋め込みデータを生成
+3. データを暗号化（AES-256-CBC）
+4. アーティファクトとして保存（保持期間: 90日）
+
+#### 必要な環境変数
+
+- `DISCORD_TOKEN`: Discord BotのトークンCHARACTER
+- `TARGET_GUILD_ID`: 取得対象のサーバーID
+- `EXCLUDED_CHANNELS`: 除外するチャンネルのリスト（任意）
+- `ENCRYPTION_KEY`: 暗号化に使用する鍵
+
+### 3. Discord Botの実行 (`run-discord-bot.yml`)
+
+#### 概要
+
+Discord AIエージェントBotを起動するワークフローです。最新のGitHub Releaseから暗号化された知識データをダウンロードし、復号化してBotを実行します。
+
+#### トリガー条件
+
+- 手動実行（`workflow_dispatch`）
+  - 実行理由（任意）
+  - 実行時間上限（30分〜360分）
+
+#### 動作
+
+1. 最新の `knowledge-data-*` タグのReleaseを検索
+2. Release assetから暗号化された知識データをダウンロード
+3. 暗号化データを復号化
+4. Discord Botを起動
+
+#### 必要な環境変数
+
+- `DISCORD_TOKEN`: Discord BotのトークンCHARACTER
+- `TARGET_GUILD_ID`: 対象のサーバーID
+- `ENCRYPTION_KEY`: 復号化に使用する鍵（生成時と同じ鍵）
+
+#### 注意事項
+
+- GitHub Actionsの制限により、最大6時間（360分）まで実行可能
+- 知識データのReleaseが存在しない場合はエラーになります
+- 「知識データの生成と保存」ワークフローを先に実行してください
+
+### 4. Auto Merge on Approval (`auto-merge.yml`)
 
 #### 概要
 
@@ -53,7 +146,7 @@ PRが承認されたときに、GitHubの自動マージ機能を有効化する
 - Draft状態のPRは自動マージされません（Ready for reviewに変更してから承認してください）
 - マージコンフリクトがある場合、自動マージは実行されません
 
-### 2. Auto Delete Branch on Merge (`auto-delete-branch.yml`)
+### 5. Auto Delete Branch on Merge (`auto-delete-branch.yml`)
 
 #### 概要
 
@@ -82,7 +175,7 @@ PRがマージされた後、ソースブランチを自動的に削除するワ
 - フォークからのPRの場合、元のリポジトリのブランチは削除されません
 - `auto-merge.yml`で自動マージされた場合、このワークフローは実行されますが、ブランチは既に削除されているため、無害なエラーが表示されます
 
-### 3. Update Other PRs After Merge (`update-other-prs.yml`)
+### 6. Update Other PRs After Merge (`update-other-prs.yml`)
 
 #### 概要
 
