@@ -61,7 +61,7 @@ Discordサーバーからメッセージを取得し、AI学習用の埋め込�
 
 #### 必要な環境変数
 
-- `DISCORD_TOKEN`: Discord BotのトークンCHARACTER
+- `DISCORD_TOKEN`: Discord Botのトークン
 - `TARGET_GUILD_ID`: 取得対象のサーバーID
 - `EXCLUDED_CHANNELS`: 除外するチャンネルのリスト（任意）
 - `ENCRYPTION_KEY`: 暗号化に使用する鍵
