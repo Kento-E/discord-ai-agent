@@ -87,7 +87,7 @@ Discord AIエージェントBotを起動するワークフローです。最新�
 
 #### 必要な環境変数
 
-- `DISCORD_TOKEN`: Discord BotのトークンCHARACTER
+- `DISCORD_TOKEN`: Discord Botのトークン
 - `TARGET_GUILD_ID`: 対象のサーバーID
 - `ENCRYPTION_KEY`: 復号化に使用する鍵（生成時と同じ鍵）
 
