@@ -1,14 +1,18 @@
-name: Update Other PRs After Merge
+name: Auto Update PRs on Main Branch Update
 
 on:
   pull_request:
     types: [closed]
     branches: [ main ]
+  push:
+    branches: [ main ]
 
 jobs:
   update-prs:
-    # PRがマージされた場合のみ実行
-    if: github.event.pull_request.merged == true
+    # PRがマージされた場合、またはmainブランチへのpushの場合に実行
+    if: |
+      (github.event_name == 'pull_request' && github.event.pull_request.merged == true) ||
+      github.event_name == 'push'
     runs-on: ubuntu-latest
     
     permissions:
@@ -22,14 +26,22 @@ jobs:
       - name: Update other PRs targeting the same base branch
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MERGED_PR_NUMBER: ${{ github.event.pull_request.number }}
-          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+          # PRイベントの場合はPR番号を設定、pushイベントの場合は 0 を設定
+          MERGED_PR_NUMBER: ${{ github.event_name == 'pull_request' && github.event.pull_request.number || 0 }}
+          # pushイベントの場合はpushされたブランチ名、PRイベントの場合はPRのベースブランチ名を設定（フォールバック: 'main'）
+          BASE_BRANCH: ${{ github.event_name == 'push' && github.ref_name || github.event.pull_request.base.ref || 'main' }}
         run: |
-          echo "✅ PR #${MERGED_PR_NUMBER} がマージされました"
-          echo "🔍 ベースブランチ '${BASE_BRANCH}' を対象とする他のオープンなPRを検索中..."
-          
-          # 同じベースブランチを持つオープンなPRを取得（マージされたPRを除外）
-          OTHER_PRS=$(gh pr list --base "${BASE_BRANCH}" --state open --json number,headRefName,title --jq --arg merged_pr "$MERGED_PR_NUMBER" '.[] | select(.number != ($merged_pr | tonumber)) | .number')
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "✅ mainブランチが更新されました"
+            echo "🔍 ベースブランチ '${BASE_BRANCH}' を対象とする全てのオープンなPRを検索中..."
+            # 全てのオープンなPRを取得
+            OTHER_PRS=$(gh pr list --base "${BASE_BRANCH}" --state open --json number --jq '.[].number')
+          else
+            echo "✅ PR #${MERGED_PR_NUMBER} がマージされました"
+            echo "🔍 ベースブランチ '${BASE_BRANCH}' を対象とする他のオープンなPRを検索中..."
+            # 同じベースブランチを持つオープンなPRを取得（マージされたPRを除外）
+            OTHER_PRS=$(gh pr list --base "${BASE_BRANCH}" --state open --json number,headRefName,title --jq --arg merged_pr "$MERGED_PR_NUMBER" '.[] | select(.number != ($merged_pr | tonumber)) | .number')
+          fi
           
           if [ -z "$OTHER_PRS" ]; then
             echo "ℹ️ 更新対象のPRはありません"
@@ -69,6 +81,9 @@ jobs:
             # ブランチ更新を実行
             echo "  🔄 ブランチを更新中..."
             
+            # 現在のhead SHAを取得
+            CURRENT_HEAD_SHA=$(gh api /repos/${{ github.repository }}/pulls/${PR_NUM} --jq .head.sha)
+            
             # update-branchを実行
             UPDATE_STATUS=0
             UPDATE_RESULT=$(gh api \
@@ -76,7 +91,7 @@ jobs:
               -H "Accept: application/vnd.github+json" \
               -H "X-GitHub-Api-Version: 2022-11-28" \
               "/repos/${{ github.repository }}/pulls/${PR_NUM}/update-branch" \
-              2>&1) || UPDATE_STATUS=$?
+              -f expected_head_sha="${CURRENT_HEAD_SHA}" 2>&1) || UPDATE_STATUS=$?
             
             if [ "${UPDATE_STATUS}" -eq 0 ]; then
               echo "  ✅ PR #${PR_NUM} を正常に更新しました"
