@@ -9,6 +9,10 @@
 - 無料AIエージェントによる応答
 - Discord Botとして稼働
 
+## クイックスタート
+
+「知識データが未生成です」というエラーが表示された場合は、[詳細な使い方ガイド](docs/USAGE.md)をご覧ください。
+
 ## セットアップ
 
 1. `requirements.txt`で依存パッケージをインストール
@@ -24,11 +28,77 @@ pip install -r requirements.txt
 - `DISCORD_TOKEN`: Discord BotのトークンCHARACTER
 - `TARGET_GUILD_ID`: 取得対象のサーバーID
 
+## 知識データの生成方法
+
+Botを初めて使用する場合、または新しいメッセージを学習させたい場合は、以下の手順で知識データを生成してください。
+
+### 手順1: メッセージの取得
+
+Discordサーバーから過去のメッセージを取得します。
+
+```bash
+export DISCORD_TOKEN="your_bot_token_here"
+export TARGET_GUILD_ID="your_guild_id_here"
+python src/fetch_messages.py
+```
+
+このスクリプトは以下を実行します：
+
+- 指定されたDiscordサーバーの全テキストチャンネルからメッセージを取得
+- Botのメッセージを除外
+- 取得したメッセージを `data/messages.json` に保存
+
+**注意事項**：
+
+- Botがサーバーに参加している必要があります
+- Botに「メッセージ履歴を読む」権限が必要です
+- Discord Developer Portalで以下のIntentsを有効化してください：
+  - MESSAGE CONTENT INTENT
+  - SERVER MEMBERS INTENT
+  - GUILDS INTENT
+
+### 手順2: 埋め込みデータの生成
+
+取得したメッセージから、AI検索用の埋め込みデータを生成します。
+
+```bash
+python src/prepare_dataset.py
+```
+
+このスクリプトは以下を実行します：
+
+- `data/messages.json` から メッセージを読み込み
+- Sentence Transformerモデル（all-MiniLM-L6-v2）で埋め込みベクトルを生成
+- 埋め込みデータを `data/embeddings.json` に保存
+
+**注意**: 初回実行時はモデルのダウンロードに時間がかかる場合があります。
+
+### 手順3: Botの起動
+
+知識データの生成が完了したら、Botを起動できます。
+
+```bash
+python src/main.py
+```
+
+Botは以下のコマンドに応答します：
+
+- `!ask <質問内容>`: 質問に関連する過去のメッセージを検索して返答
+- `@Bot <質問内容>`: Botへのメンションでも同様に応答
+
 ### ローカル環境での実行
 
 ```bash
 export DISCORD_TOKEN="your_bot_token_here"
 export TARGET_GUILD_ID="your_guild_id_here"
+
+# 1. メッセージ取得
+python src/fetch_messages.py
+
+# 2. 埋め込みデータ生成
+python src/prepare_dataset.py
+
+# 3. Bot起動
 python src/main.py
 ```
 
