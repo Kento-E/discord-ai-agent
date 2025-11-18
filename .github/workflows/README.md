@@ -6,35 +6,12 @@
 
 ### 1. 知識データのRelease自動アップロード (`upload-knowledge-to-release.yml`)
 
-#### 概要
-
 「知識データの生成と保存」ワークフローで作成された暗号化知識データを、GitHub Releaseとして自動的に公開するワークフローです。
 
-詳細なアーキテクチャと利点については [docs/RELEASE_FLOW.md](../../docs/RELEASE_FLOW.md) を参照してください。
+詳細なアーキテクチャ、利点、使用方法、トラブルシューティングについては [docs/RELEASE_FLOW.md](../../docs/RELEASE_FLOW.md) を参照してください。
 
-#### トリガー条件
-
-- イベント: `workflow_run` (completed)
-- 対象ワークフロー: 「知識データの生成と保存」
-- 条件: 元のワークフローが成功した場合のみ実行
-
-#### 動作
-
-1. 「知識データの生成と保存」ワークフローが成功したことを確認
-2. 暗号化された知識データ（`knowledge-data-encrypted` アーティファクト）をダウンロード
-3. タイムスタンプ+ワークフロー実行IDベースのタグ名を生成
-4. GitHub Releaseを作成し、暗号化データをアップロード
-5. 古いReleaseを自動削除（最新5件のみ保持）
-
-#### 必要な権限
-
-- `contents: write` - Release作成とタグ操作
-
-#### 注意事項
-
-- 元のワークフローが失敗した場合は実行されません
-- 最新5件より古いReleaseは自動的に削除されます
-- `concurrency`設定により並行実行を制限
+**トリガー**: `workflow_run` (「知識データの生成と保存」完了時)  
+**権限**: `contents: write`
 
 ### 2. 知識データの生成と保存 (`generate-knowledge-data.yml`)
 
