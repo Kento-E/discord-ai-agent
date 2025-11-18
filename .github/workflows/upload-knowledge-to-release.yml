@@ -9,9 +9,6 @@ on:
 concurrency:
   group: upload-knowledge-release
   cancel-in-progress: false
-concurrency:
-  group: upload-knowledge-release
-  cancel-in-progress: false
 
 permissions:
   contents: write
