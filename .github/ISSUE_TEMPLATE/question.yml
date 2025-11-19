@@ -20,6 +20,16 @@ body:
         Pull Requestは作成されません。改修を依頼する場合は、
         Bug ReportやFeature Requestテンプレートを使用してください。
 
+  - type: checkboxes
+    id: pre-implementation-checks
+    attributes:
+      label: 実装前の確認事項
+      description: 作業を開始する前に、以下の項目を確認してください。
+      options:
+        - label: "`.github/instructions/`内の関連指示書を確認しました"
+          required: false
+        - label: "該当する指示書のチェックリストを確認しました"
+          required: false
   - type: textarea
     id: question
     attributes:
