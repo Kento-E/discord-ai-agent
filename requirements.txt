@@ -1,3 +1,11 @@
 discord.py
 transformers
 sentence-transformers
+
+# Linter and formatter tools
+flake8
+pylint
+autoflake
+isort
+black
+pre-commit
