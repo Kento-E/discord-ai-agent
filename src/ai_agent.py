@@ -35,6 +35,37 @@ def search_similar_message(query, top_k=3):
 # 予測される返信を生成
 
 
+def apply_common_ending(base_text, common_endings):
+    """
+    メッセージに共通の語尾を適用する（重複を避ける）
+
+    Args:
+        base_text: 元のメッセージ
+        common_endings: 適用可能な語尾のリスト
+
+    Returns:
+        語尾が適用されたメッセージ
+    """
+    if not common_endings:
+        return base_text
+
+    # 既存の文末句読点を除去
+    text_without_ending = re.sub(r"[。！？\s]+$", "", base_text)
+    endings_subset = (
+        common_endings[:5] if len(common_endings) >= 5 else common_endings
+    )
+    common_ending = random.choice(endings_subset)
+
+    # 重複を避けるため、既に同じ語尾で終わっている場合は追加しない
+    # common_endingから句読点を除いた部分を抽出
+    ending_without_punct = re.sub(r"[。！？\s]+$", "", common_ending)
+    if ending_without_punct and text_without_ending.endswith(ending_without_punct):
+        # 既に同じ語尾で終わっている場合は元のテキストを使用
+        return base_text
+    else:
+        return text_without_ending + common_ending
+
+
 def generate_response(query, top_k=5):
     """
     クエリに対して、過去の知識とペルソナに基づいた予測返信を生成
@@ -93,26 +124,7 @@ def generate_response(query, top_k=5):
 
         # ペルソナの文末表現を使用
         common_endings = persona.get("common_endings", [])
-        if common_endings:
-            # 既存の文末を置き換え
-            base_without_ending = re.sub(r"[。！？\s]+$", "", base_message)
-            endings_subset = (
-                common_endings[:5] if len(common_endings) >= 5 else common_endings
-            )
-            common_ending = random.choice(endings_subset)
-
-            # 重複を避けるため、既に同じ語尾で終わっている場合は追加しない
-            # common_endingから句読点を除いた部分を抽出
-            ending_without_punct = re.sub(r"[。！？\s]+$", "", common_ending)
-            if ending_without_punct and base_without_ending.endswith(
-                ending_without_punct
-            ):
-                # 既に同じ語尾で終わっている場合はそのまま使用
-                response = base_message
-            else:
-                response = base_without_ending + common_ending
-        else:
-            response = base_message
+        response = apply_common_ending(base_message, common_endings)
 
         return response
 
@@ -138,23 +150,7 @@ def generate_response(query, top_k=5):
 
     # ペルソナの文末表現を適用
     common_endings = persona.get("common_endings", [])
-    if common_endings:
-        response_without_ending = re.sub(r"[。！？\s]+$", "", response)
-        endings_subset = (
-            common_endings[:5] if len(common_endings) >= 5 else common_endings
-        )
-        common_ending = random.choice(endings_subset)
-
-        # 重複を避けるため、既に同じ語尾で終わっている場合は追加しない
-        # common_endingから句読点を除いた部分を抽出
-        ending_without_punct = re.sub(r"[。！？\s]+$", "", common_ending)
-        if ending_without_punct and response_without_ending.endswith(
-            ending_without_punct
-        ):
-            # 既に同じ語尾で終わっている場合は元のresponseを使用
-            response = response
-        else:
-            response = response_without_ending + common_ending
+    response = apply_common_ending(response, common_endings)
 
     return response
 
