@@ -61,9 +61,23 @@ def generate_response(query, top_k=5):
     query_lower = query.lower()
     is_question = any(
         q in query_lower
-        for q in ["？", "?", "ですか", "ますか", "なに", "何", "どう", "いつ", "どこ", "だれ", "誰"]
+        for q in [
+            "？",
+            "?",
+            "ですか",
+            "ますか",
+            "なに",
+            "何",
+            "どう",
+            "いつ",
+            "どこ",
+            "だれ",
+            "誰",
+        ]
     )
-    is_greeting = any(g in query_lower for g in ["おはよう", "こんにちは", "こんばんは", "お疲れ"])
+    is_greeting = any(
+        g in query_lower for g in ["おはよう", "こんにちは", "こんばんは", "お疲れ"]
+    )
 
     # 挨拶への応答
     if is_greeting:
@@ -86,7 +100,17 @@ def generate_response(query, top_k=5):
                 common_endings[:5] if len(common_endings) >= 5 else common_endings
             )
             common_ending = random.choice(endings_subset)
-            response = base_without_ending + common_ending
+
+            # 重複を避けるため、既に同じ語尾で終わっている場合は追加しない
+            # common_endingから句読点を除いた部分を抽出
+            ending_without_punct = re.sub(r"[。！？\s]+$", "", common_ending)
+            if ending_without_punct and base_without_ending.endswith(
+                ending_without_punct
+            ):
+                # 既に同じ語尾で終わっている場合はそのまま使用
+                response = base_message
+            else:
+                response = base_without_ending + common_ending
         else:
             response = base_message
 
@@ -115,12 +139,22 @@ def generate_response(query, top_k=5):
     # ペルソナの文末表現を適用
     common_endings = persona.get("common_endings", [])
     if common_endings:
-        response = re.sub(r"[。！？\s]+$", "", response)
+        response_without_ending = re.sub(r"[。！？\s]+$", "", response)
         endings_subset = (
             common_endings[:5] if len(common_endings) >= 5 else common_endings
         )
         common_ending = random.choice(endings_subset)
-        response = response + common_ending
+
+        # 重複を避けるため、既に同じ語尾で終わっている場合は追加しない
+        # common_endingから句読点を除いた部分を抽出
+        ending_without_punct = re.sub(r"[。！？\s]+$", "", common_ending)
+        if ending_without_punct and response_without_ending.endswith(
+            ending_without_punct
+        ):
+            # 既に同じ語尾で終わっている場合は元のresponseを使用
+            response = response
+        else:
+            response = response_without_ending + common_ending
 
     return response
 
