@@ -57,10 +57,14 @@ def apply_common_ending(base_text, common_endings):
     # 重複を避けるため、既に同じ語尾で終わっている場合は追加しない
     # common_endingから句読点を除いた部分を抽出
     ending_without_punct = re.sub(r"[。！？\s]+$", "", common_ending)
-    if ending_without_punct and text_without_ending.endswith(ending_without_punct):
-        # 既に同じ語尾で終わっている場合は元のテキストを使用
+    if not ending_without_punct:
+        # 純粋な句読点の語尾 - そのまま追加
+        return text_without_ending + common_ending
+    elif text_without_ending.endswith(ending_without_punct):
+        # 既にこの語尾を持っている - 元のテキストを使用
         return base_text
     else:
+        # 異なる語尾 - 置き換える
         return text_without_ending + common_ending
 
 
