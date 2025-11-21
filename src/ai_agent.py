@@ -68,6 +68,136 @@ def apply_common_ending(base_text, common_endings):
         return text_without_ending + common_ending
 
 
+def generate_detailed_answer(similar_messages, persona):
+    """
+    質問に対して、複数の類似メッセージを組み合わせた詳細な回答を生成
+
+    Args:
+        similar_messages: 類似度の高いメッセージのリスト
+        persona: ペルソナ情報
+
+    Returns:
+        詳細な回答文字列（複数行）
+    """
+    if not similar_messages:
+        return "わかりません。"
+
+    common_endings = persona.get("common_endings", [])
+    avg_length = persona.get("avg_message_length", 50)
+
+    # 類似メッセージから文を抽出し、重複を避けながら組み合わせる
+    response_parts = []
+    used_sentences = set()
+    target_length = max(avg_length * 3, 100)  # 質問には詳細に回答（最低100文字）
+    current_length = 0  # 現在の長さを追跡
+
+    for message in similar_messages:
+        # メッセージを文に分割
+        sentences = [s.strip() for s in re.split(r"[。！？]", message) if s.strip()]
+
+        for sentence in sentences:
+            # 重複チェック（類似度の高い文は除外）
+            is_duplicate = False
+            for used in used_sentences:
+                # 60%以上一致する場合は重複とみなす（Jaccard類似度を使用）
+                if len(sentence) > 0 and len(used) > 0:
+                    set_sentence = set(sentence)
+                    set_used = set(used)
+                    intersection = len(set_sentence & set_used)
+                    union = len(set_sentence | set_used)
+                    similarity = intersection / union if union > 0 else 0
+                    if similarity > 0.6:
+                        is_duplicate = True
+                        break
+
+            if not is_duplicate and len(sentence) >= 3:
+                response_parts.append(sentence)
+                used_sentences.add(sentence)
+                current_length += len(sentence)  # 長さを更新
+
+                # 目標の長さに達したら終了
+                if current_length >= target_length:
+                    break
+
+        # 十分な長さに達したら終了
+        if current_length >= target_length:
+            break
+
+    # 最低2文は含めるようにする
+    if len(response_parts) < 2 and len(similar_messages) >= 2:
+        # 最初の2つのメッセージをそのまま使用
+        response_parts = [similar_messages[0]]
+        if len(similar_messages) > 1:
+            response_parts.append(similar_messages[1])
+
+    # 文を結合して回答を構築
+    if not response_parts:
+        response = similar_messages[0]
+    else:
+        # 各文にペルソナの文末表現を適用
+        formatted_parts = []
+        for i, part in enumerate(response_parts):
+            if i == len(response_parts) - 1:
+                # 最後の文には文末表現を適用
+                formatted_parts.append(apply_common_ending(part, common_endings))
+            else:
+                # 途中の文は句点で終わらせる
+                if not re.search(r"[。！？]$", part):
+                    formatted_parts.append(part + "。")
+                else:
+                    formatted_parts.append(part)
+
+        response = "\n".join(formatted_parts)
+
+    return response
+
+
+def generate_casual_response(similar_messages, persona):
+    """
+    通常会話に対して、ペルソナに沿った短めの受け答えを生成
+
+    Args:
+        similar_messages: 類似度の高いメッセージのリスト
+        persona: ペルソナ情報
+
+    Returns:
+        短めの自然な受け答え文字列
+    """
+    if not similar_messages:
+        return "そうですね。"
+
+    base_message = similar_messages[0]
+    common_endings = persona.get("common_endings", [])
+    target_length = persona.get("avg_message_length", 50)
+
+    # メッセージの長さをペルソナの平均に近づける
+    if len(base_message) > target_length * 1.5:
+        # 長すぎる場合は短縮（最初の文のみ）
+        sentences = [s for s in re.split(r"[。！？]", base_message) if s.strip()]
+        response = (sentences[0] + "。") if sentences else base_message
+    elif len(base_message) < target_length * 0.5:
+        # 短すぎる場合は、2つ目の類似メッセージも参考にする
+        if len(similar_messages) > 1:
+            second_message = similar_messages[1]
+            # 2つ目のメッセージから最初の文を取得
+            second_sentences = [
+                s for s in re.split(r"[。！？]", second_message) if s.strip()
+            ]
+            if second_sentences:
+                response = base_message + " " + second_sentences[0] + "。"
+            else:
+                response = base_message
+        else:
+            response = base_message
+    else:
+        response = base_message
+
+    # ペルソナの文末表現を適用
+    response = apply_common_ending(response, common_endings)
+
+    return response
+
+
 def generate_response(query, top_k=5):
     """
     クエリに対して、過去の知識とペルソナに基づいた予測返信を生成
@@ -106,6 +236,11 @@ def generate_response(query, top_k=5):
             "どこ",
             "だれ",
             "誰",
+            "どのように",
+            "なぜ",
+            "教えて",
+            "方法",
+            "やり方",
         ]
     )
     is_greeting = any(
@@ -119,42 +254,12 @@ def generate_response(query, top_k=5):
             response = random.choice(greetings)
             return response
 
-    # 質問への応答生成
+    # 質問への応答生成（複数行の詳細な回答を構築）
     if is_question:
-        # 最も類似度の高いメッセージを基に応答を構築
-        base_message = similar_messages[0]
+        return generate_detailed_answer(similar_messages, persona)
 
-        # ペルソナの文末表現を使用
-        common_endings = persona.get("common_endings", [])
-        response = apply_common_ending(base_message, common_endings)
-
-        return response
-
-    # 通常の会話応答
-    # 複数の類似メッセージから要素を組み合わせる
-    base_message = similar_messages[0]
-
-    # メッセージの長さをペルソナの平均に近づける
-    target_length = persona.get("avg_message_length", 50)
-
-    if len(base_message) > target_length * 1.5:
-        # 長すぎる場合は短縮
-        sentences = [s for s in re.split(r"[。！？]", base_message) if s.strip()]
-        response = (sentences[0] + "。") if sentences else base_message
-    elif len(base_message) < target_length * 0.5:
-        # 短すぎる場合は、2つ目の類似メッセージも参考にする
-        if len(similar_messages) > 1:
-            response = base_message + " " + similar_messages[1]
-        else:
-            response = base_message
-    else:
-        response = base_message
-
-    # ペルソナの文末表現を適用
-    common_endings = persona.get("common_endings", [])
-    response = apply_common_ending(response, common_endings)
-
-    return response
+    # 通常の会話応答（ペルソナに沿った短めの受け答え）
+    return generate_casual_response(similar_messages, persona)
 
 
 # テスト用

@@ -83,7 +83,12 @@ def test_response_generation():
     print(f'  - 文末表現: {", ".join(persona["common_endings"][:5])}')
 
     # 簡単な応答生成ロジックのテスト
-    test_queries = ["おはよう", "プロジェクトの状況は？", "ありがとう", "会議について教えて"]
+    test_queries = [
+        "おはよう",
+        "プロジェクトの状況は？",
+        "ありがとう",
+        "会議について教えて",
+    ]
 
     print("\n✓ サンプルクエリへの応答生成テスト:")
     for query in test_queries:
