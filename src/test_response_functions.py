@@ -71,9 +71,12 @@ def test_generate_detailed_answer():
             formatted_parts = []
             for i, part in enumerate(response_parts):
                 if i == len(response_parts) - 1:
-                    # 最後の文
+                    # 最後の文 - apply_common_ending相当の処理
                     text_without_ending = re.sub(r"[。！？\s]+$", "", part)
-                    formatted_parts.append(text_without_ending + common_endings[0])
+                    if common_endings:
+                        formatted_parts.append(text_without_ending + common_endings[0])
+                    else:
+                        formatted_parts.append(part)
                 else:
                     if not re.search(r"[。！？]$", part):
                         formatted_parts.append(part + "。")
@@ -90,7 +93,7 @@ def test_generate_detailed_answer():
     print(f"テスト入力: {len(similar_messages)}個の類似メッセージ")
     print(f"\n生成された応答:\n{response}\n")
     print(f"応答の長さ: {len(response)}文字")
-    print(f"行数: {response.count(chr(10)) + 1}行")
+    print(f"行数: {response.count('\n') + 1}行")
 
     # 検証
     assert len(response) > 50, "応答が短すぎます"
@@ -150,7 +153,10 @@ def test_generate_casual_response():
 
         # 文末表現を適用
         text_without_ending = re.sub(r"[。！？\s]+$", "", response)
-        response = text_without_ending + common_endings[0]
+        if common_endings:
+            response = text_without_ending + common_endings[0]
+        else:
+            response = text_without_ending
 
         return response
 
