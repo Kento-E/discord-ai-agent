@@ -89,6 +89,7 @@ def generate_detailed_answer(similar_messages, persona):
     response_parts = []
     used_sentences = set()
     target_length = max(avg_length * 3, 100)  # 質問には詳細に回答（最低100文字）
+    current_length = 0  # 現在の長さを追跡
 
     for message in similar_messages:
         # メッセージを文に分割
@@ -98,10 +99,13 @@ def generate_detailed_answer(similar_messages, persona):
             # 重複チェック（類似度の高い文は除外）
             is_duplicate = False
             for used in used_sentences:
-                # 60%以上一致する場合は重複とみなす
+                # 60%以上一致する場合は重複とみなす（Jaccard類似度を使用）
                 if len(sentence) > 0 and len(used) > 0:
-                    common_chars = sum(1 for c in sentence if c in used)
-                    similarity = common_chars / max(len(sentence), len(used))
+                    set_sentence = set(sentence)
+                    set_used = set(used)
+                    intersection = len(set_sentence & set_used)
+                    union = len(set_sentence | set_used)
+                    similarity = intersection / union if union > 0 else 0
                     if similarity > 0.6:
                         is_duplicate = True
                         break
@@ -109,14 +113,13 @@ def generate_detailed_answer(similar_messages, persona):
             if not is_duplicate and len(sentence) >= 3:
                 response_parts.append(sentence)
                 used_sentences.add(sentence)
+                current_length += len(sentence)  # 長さを更新
 
                 # 目標の長さに達したら終了
-                current_length = sum(len(s) for s in response_parts)
                 if current_length >= target_length:
                     break
 
         # 十分な長さに達したら終了
-        current_length = sum(len(s) for s in response_parts)
         if current_length >= target_length:
             break
 
