@@ -73,7 +73,11 @@ def test_response_generation_logic():
         "common_endings": ["ます。", "です。", "ね。", "か？", "！"],
         "sample_greetings": ["おはようございます！", "こんにちは！", "お疲れ様です。"],
         "avg_message_length": 15.0,
-        "sample_messages": ["確認してみます。", "ありがとうございます！", "よろしくお願いします。"],
+        "sample_messages": [
+            "確認してみます。",
+            "ありがとうございます！",
+            "よろしくお願いします。",
+        ],
     }
 
     # テストケース1: 挨拶への応答
@@ -84,7 +88,9 @@ def test_response_generation_logic():
         print("✓ 挨拶テスト")
         print(f"  入力: {query1}")
         print(f"  応答: {response1}")
-        assert any(g in response1 for g in ["おはよう", "こんにちは", "お疲れ"]), "挨拶応答が正しくありません"
+        assert any(
+            g in response1 for g in ["おはよう", "こんにちは", "お疲れ"]
+        ), "挨拶応答が正しくありません"
 
     # テストケース2: 質問への応答
     query2 = "進捗はどうですか？"

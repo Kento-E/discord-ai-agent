@@ -29,7 +29,9 @@ def output_detailed_info():
     try:
         with open(summary_file, "a", encoding="utf-8") as f:
             f.write("\n---\n\n")
-            f.write("## 📋 詳細情報（リポジトリのActions権限を持つユーザーが閲覧可能）\n\n")
+            f.write(
+                "## 📋 詳細情報（リポジトリのActions権限を持つユーザーが閲覧可能）\n\n"
+            )
 
             if detailed_info["bot_name"]:
                 f.write(f"**Bot名**: {detailed_info['bot_name']}\n\n")
@@ -42,7 +44,9 @@ def output_detailed_info():
             if detailed_info["member_count"] is not None:
                 f.write(f"**メンバー数**: {detailed_info['member_count']}\n\n")
 
-            f.write("> ⚠️ この情報はリポジトリのActionsタブにアクセスできるユーザーが閲覧できます。\n")
+            f.write(
+                "> ⚠️ この情報はリポジトリのActionsタブにアクセスできるユーザーが閲覧できます。\n"
+            )
             f.write("> 公開ログには表示されません。\n")
     except Exception as e:
         print(f"⚠️ 詳細情報の出力中にエラーが発生しました: {e}")

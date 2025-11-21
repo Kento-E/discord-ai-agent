@@ -16,7 +16,9 @@ import discord
 # 環境変数から設定を読み取る
 TOKEN = os.environ.get("DISCORD_TOKEN")
 GUILD_ID_STR = os.environ.get("TARGET_GUILD_ID")
-EXCLUDED_CHANNELS_STR = os.environ.get("EXCLUDED_CHANNELS", "")  # カンマ区切りのチャンネル名
+EXCLUDED_CHANNELS_STR = os.environ.get(
+    "EXCLUDED_CHANNELS", ""
+)  # カンマ区切りのチャンネル名
 
 # データ保存先
 DATA_DIR = os.path.join(os.path.dirname(__file__), "../data")
@@ -92,7 +94,9 @@ async def fetch_messages_from_guild(
     for channel in guild.text_channels:
         # 除外チャンネルリストに含まれている場合はスキップ
         if channel.name in excluded_channels:
-            print(f"⏩ チャンネル (ID: {channel.id}) をスキップ（除外リストに含まれています）")
+            print(
+                f"⏩ チャンネル (ID: {channel.id}) をスキップ（除外リストに含まれています）"
+            )
             continue
 
         print(f"📝 チャンネル (ID: {channel.id}) からメッセージを取得中...")
