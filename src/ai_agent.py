@@ -35,6 +35,39 @@ def search_similar_message(query, top_k=3):
 # 予測される返信を生成
 
 
+def apply_common_ending(base_text, common_endings):
+    """
+    メッセージに共通の語尾を適用する（重複を避ける）
+
+    Args:
+        base_text: 元のメッセージ
+        common_endings: 適用可能な語尾のリスト
+
+    Returns:
+        語尾が適用されたメッセージ
+    """
+    if not common_endings:
+        return base_text
+
+    # 既存の文末句読点を除去
+    text_without_ending = re.sub(r"[。！？\s]+$", "", base_text)
+    # すべての語尾からランダムに選択
+    common_ending = random.choice(common_endings)
+
+    # 重複を避けるため、既に同じ語尾で終わっている場合は追加しない
+    # common_endingから句読点を除いた部分を抽出
+    ending_without_punct = re.sub(r"[。！？\s]+$", "", common_ending)
+    if not ending_without_punct:
+        # 純粋な句読点の語尾 - そのまま追加
+        return text_without_ending + common_ending
+    elif text_without_ending.endswith(ending_without_punct):
+        # 既にこの語尾を持っている - 元のテキストを使用
+        return base_text
+    else:
+        # 異なる語尾 - 置き換える
+        return text_without_ending + common_ending
+
+
 def generate_response(query, top_k=5):
     """
     クエリに対して、過去の知識とペルソナに基づいた予測返信を生成
@@ -61,9 +94,23 @@ def generate_response(query, top_k=5):
     query_lower = query.lower()
     is_question = any(
         q in query_lower
-        for q in ["？", "?", "ですか", "ますか", "なに", "何", "どう", "いつ", "どこ", "だれ", "誰"]
+        for q in [
+            "？",
+            "?",
+            "ですか",
+            "ますか",
+            "なに",
+            "何",
+            "どう",
+            "いつ",
+            "どこ",
+            "だれ",
+            "誰",
+        ]
     )
-    is_greeting = any(g in query_lower for g in ["おはよう", "こんにちは", "こんばんは", "お疲れ"])
+    is_greeting = any(
+        g in query_lower for g in ["おはよう", "こんにちは", "こんばんは", "お疲れ"]
+    )
 
     # 挨拶への応答
     if is_greeting:
@@ -79,16 +126,7 @@ def generate_response(query, top_k=5):
 
         # ペルソナの文末表現を使用
         common_endings = persona.get("common_endings", [])
-        if common_endings:
-            # 既存の文末を置き換え
-            base_without_ending = re.sub(r"[。！？\s]+$", "", base_message)
-            endings_subset = (
-                common_endings[:5] if len(common_endings) >= 5 else common_endings
-            )
-            common_ending = random.choice(endings_subset)
-            response = base_without_ending + common_ending
-        else:
-            response = base_message
+        response = apply_common_ending(base_message, common_endings)
 
         return response
 
@@ -114,13 +152,7 @@ def generate_response(query, top_k=5):
 
     # ペルソナの文末表現を適用
     common_endings = persona.get("common_endings", [])
-    if common_endings:
-        response = re.sub(r"[。！？\s]+$", "", response)
-        endings_subset = (
-            common_endings[:5] if len(common_endings) >= 5 else common_endings
-        )
-        common_ending = random.choice(endings_subset)
-        response = response + common_ending
+    response = apply_common_ending(response, common_endings)
 
     return response
 
