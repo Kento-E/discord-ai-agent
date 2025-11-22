@@ -23,21 +23,25 @@ intents.guilds = True
 client = discord.Client(intents=intents)
 
 # ai_agent モジュールのインポート（埋め込みデータが存在する場合のみ）
+# 注意: 遅延ロードにより、実際のデータロードは初回応答時に行われます
 generate_response = None
 if os.path.exists(EMBED_PATH):
     try:
         from ai_agent import generate_response
 
-        print("AIエージェント機能が正常にロードされました。")
+        print("✅ AIエージェント機能が有効化されました")
+        print("   💡 モデルとデータは初回応答時に自動的にロードされます")
     except Exception as e:
-        print(f"AIエージェントのロード中にエラーが発生しました: {e}")
+        print(f"❌ AIエージェントのロード中にエラーが発生しました: {e}")
         generate_response = None
 
 
 @client.event
 async def on_ready():
-    print(f"Logged in as {client.user}")
-    print("Bot is running and ready to answer.")
+    print(f"✅ ログイン成功: {client.user}")
+    print("🤖 Botが起動し、メッセージの受信を開始しました")
+    if generate_response:
+        print("💬 メンションまたは !ask コマンドで質問できます")
 
 
 @client.event
@@ -57,7 +61,33 @@ async def on_message(message):
         if os.path.exists(EMBED_PATH) and generate_response:
             # 予測返信を生成
             try:
-                response = generate_response(query)
+                # 初回初期化の責任をai_agentモジュール側に持たせる
+                from ai_agent import ensure_initialized_with_callback
+                
+                loading_msg = None
+                
+                def on_first_init():
+                    """初回初期化開始時のコールバック"""
+                    nonlocal loading_msg
+                    # この時点ではasyncコンテキスト外なので、メッセージ送信は後で行う
+                    pass
+                
+                # 初期化を実行し、初回かどうかを判定
+                was_already_initialized = ensure_initialized_with_callback(on_first_init)
+                
+                # 初回初期化の場合のみローディングメッセージを表示
+                if not was_already_initialized:
+                    loading_msg = await message.channel.send(
+                        "🔄 初回起動完了！AIモデルとデータをロードしました"
+                    )
+                
+                try:
+                    response = generate_response(query)
+                finally:
+                    # エラーが発生してもローディングメッセージを削除
+                    if loading_msg:
+                        await loading_msg.delete()
+
                 await message.channel.send(response)
             except Exception as e:
                 await message.channel.send(f"エラーが発生しました: {str(e)}")
