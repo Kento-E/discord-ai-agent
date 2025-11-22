@@ -41,6 +41,75 @@ def is_initialized():
     return _initialized
 
 
+def ensure_initialized_with_callback(callback=None):
+    """
+    初期化を実行し、コールバックを通じて初回初期化かどうかを通知する
+    
+    この関数は初期化処理を実行し、初回の初期化時のみコールバックを呼び出します。
+    2回目以降の呼び出しでは何もせず、即座にTrueを返します。
+    
+    Args:
+        callback: 初回初期化時に呼び出される関数（引数なし）
+    
+    Returns:
+        bool: 既に初期化済みだった場合True、今回初めて初期化した場合False
+    
+    Raises:
+        FileNotFoundError: EMBED_PATHが存在しない場合
+        json.JSONDecodeError: JSONファイルの解析に失敗した場合
+        Exception: モデルのロードに失敗した場合
+    """
+    global _model, _texts, _embeddings, _persona, _initialized
+    
+    # 既に初期化済み
+    if _initialized:
+        return True
+    
+    # ダブルチェックロッキングパターン
+    with _init_lock:
+        # ロック取得後に再度チェック
+        if _initialized:
+            return True
+        
+        # 初回初期化開始
+        if callback:
+            callback()
+        
+        try:
+            # sentence_transformersを遅延インポート（起動時間の最適化）
+            from sentence_transformers import SentenceTransformer
+
+            # モデルのロード
+            _model = SentenceTransformer("all-MiniLM-L6-v2")
+
+            # 埋め込みデータのロード
+            if not os.path.exists(EMBED_PATH):
+                raise FileNotFoundError(
+                    f"埋め込みデータが見つかりません: {EMBED_PATH}\n"
+                    "prepare_dataset.pyを実行してデータを生成してください。"
+                )
+
+            with open(EMBED_PATH, "r") as f:
+                dataset = json.load(f)
+
+            _texts = [item["text"] for item in dataset]
+            _embeddings = [item["embedding"] for item in dataset]
+
+            # ペルソナデータのロード
+            if os.path.exists(PERSONA_PATH):
+                with open(PERSONA_PATH, "r") as f:
+                    _persona = json.load(f)
+
+            _initialized = True
+            return False  # 初回初期化完了
+        except FileNotFoundError:
+            raise
+        except json.JSONDecodeError as e:
+            raise Exception(f"JSONファイルの解析に失敗しました: {str(e)}") from e
+        except Exception as e:
+            raise Exception(f"AIエージェントの初期化に失敗しました: {str(e)}") from e
+
+
 def _ensure_initialized():
     """
     モデルとデータを遅延ロードする（初回呼び出し時のみ実行）
