@@ -35,7 +35,7 @@ def test_persona_generation():
     common_words = Counter(all_words).most_common(10)
     print(f"✓ 頻出単語: {[word for word, count in common_words]}")
 
-    # 文末表現の抽出
+    # 文末表現の抽出（参考情報として表示のみ）
     sentence_endings = []
     for text in test_messages:
         if len(text) >= 2:
@@ -43,7 +43,7 @@ def test_persona_generation():
             sentence_endings.extend(endings)
 
     common_endings = Counter(sentence_endings).most_common(5)
-    print(f"✓ 文末表現: {[ending for ending, count in common_endings]}")
+    print(f"✓ 文末表現（参考）: {[ending for ending, count in common_endings]}")
 
     # 挨拶表現の検出
     greetings = []
@@ -70,7 +70,6 @@ def test_response_generation_logic():
     # テスト用ペルソナ
     persona = {
         "common_words": ["お疲れ", "確認", "ありがとう", "よろしく"],
-        "common_endings": ["ます。", "です。", "ね。", "か？", "！"],
         "sample_greetings": ["おはようございます！", "こんにちは！", "お疲れ様です。"],
         "avg_message_length": 15.0,
         "sample_messages": [
@@ -96,9 +95,7 @@ def test_response_generation_logic():
     query2 = "進捗はどうですか？"
     is_question = any(q in query2 for q in ["？", "?", "ですか", "ますか", "どう"])
     if is_question:
-        base_message = persona["sample_messages"][0]
-        base_without_ending = re.sub(r"[。！？\s]+$", "", base_message)
-        response2 = base_without_ending + persona["common_endings"][0]
+        response2 = persona["sample_messages"][0]
         print("\n✓ 質問応答テスト")
         print(f"  入力: {query2}")
         print(f"  応答: {response2}")
@@ -114,22 +111,10 @@ def test_response_generation_logic():
     else:
         response3 = base_message
 
-    # ペルソナの文末表現を適用
-    response3 = re.sub(r"[。！？\s]+$", "", response3)
-    response3 = response3 + persona["common_endings"][0]
-
     print("\n✓ 通常会話テスト")
     print(f"  入力: {query3}")
     print(f"  応答: {response3}")
     assert len(response3) > 0, "応答が空です"
-
-    # テストケース4: 文末表現の適用
-    print("\n✓ 文末表現適用テスト")
-    for i, ending in enumerate(persona["common_endings"][:3]):
-        test_msg = "テストメッセージ"
-        result = test_msg + ending
-        print(f"  {i+1}. {test_msg} → {result}")
-        assert result.endswith(ending), "文末表現が正しく適用されていません"
 
     return True
 
