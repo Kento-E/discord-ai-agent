@@ -49,7 +49,6 @@ def generate_detailed_answer(similar_messages, persona):
     if not similar_messages:
         return "わかりません。"
 
-    common_endings = persona.get("common_endings", [])
     avg_length = persona.get("avg_message_length", 50)
 
     # 類似メッセージから文を抽出し、重複を避けながら組み合わせる
@@ -130,7 +129,6 @@ def generate_casual_response(similar_messages, persona):
         return "そうですね。"
 
     base_message = similar_messages[0]
-    common_endings = persona.get("common_endings", [])
     target_length = persona.get("avg_message_length", 50)
 
     # メッセージの長さをペルソナの平均に近づける
