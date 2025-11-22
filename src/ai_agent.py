@@ -1,35 +1,182 @@
+"""
+AIエージェントモジュール
+
+このモジュールは遅延ロード（Lazy Loading）を使用して、起動時間を最適化しています。
+モデルとデータは初回の関数呼び出し時にロードされ、以降はキャッシュが使用されます。
+
+実装の詳細:
+- sentence_transformersライブラリは初回呼び出し時にインポート
+- SentenceTransformerモデルは初回呼び出し時にロード
+- 埋め込みデータとペルソナデータは初回呼び出し時にロード
+- 2回目以降の呼び出しではキャッシュされたデータを使用
+
+この設計により、モジュールのインポートは即座に完了し、
+Bot起動時間が大幅に短縮されます。
+"""
 import json
 import os
 import random
 import re
-
-from sentence_transformers import SentenceTransformer, util
+import threading
 
 EMBED_PATH = os.path.join(os.path.dirname(__file__), "../data/embeddings.json")
 PERSONA_PATH = os.path.join(os.path.dirname(__file__), "../data/persona.json")
-model = SentenceTransformer("all-MiniLM-L6-v2")
 
-# 埋め込みデータのロード
-with open(EMBED_PATH, "r") as f:
-    dataset = json.load(f)
+# 遅延ロード用のグローバル変数（キャッシュ）
+_model = None
+_texts = None
+_embeddings = None
+_persona = None
+_initialized = False
+_init_lock = threading.Lock()
 
-texts = [item["text"] for item in dataset]
-embeddings = [item["embedding"] for item in dataset]
 
-# ペルソナデータのロード
-persona = None
-if os.path.exists(PERSONA_PATH):
-    with open(PERSONA_PATH, "r") as f:
-        persona = json.load(f)
+def is_initialized():
+    """
+    初期化済みかどうかを返す
+    
+    Returns:
+        bool: 初期化済みの場合True、未初期化の場合False
+    """
+    return _initialized
+
+
+def ensure_initialized_with_callback(callback=None):
+    """
+    初期化を実行し、コールバックを通じて初回初期化かどうかを通知する
+    
+    この関数は初期化処理を実行し、初回の初期化時のみコールバックを呼び出します。
+    2回目以降の呼び出しでは何もせず、即座にTrueを返します。
+    
+    Args:
+        callback: 初回初期化時に呼び出される関数（引数なし）
+    
+    Returns:
+        bool: 既に初期化済みだった場合True、今回初めて初期化した場合False
+    
+    Raises:
+        FileNotFoundError: EMBED_PATHが存在しない場合
+        json.JSONDecodeError: JSONファイルの解析に失敗した場合
+        Exception: モデルのロードに失敗した場合
+    """
+    global _model, _texts, _embeddings, _persona, _initialized
+    
+    # 既に初期化済み
+    if _initialized:
+        return True
+    
+    # ダブルチェックロッキングパターン
+    with _init_lock:
+        # ロック取得後に再度チェック
+        if _initialized:
+            return True
+        
+        # 初回初期化開始
+        if callback:
+            callback()
+        
+        try:
+            # sentence_transformersを遅延インポート（起動時間の最適化）
+            from sentence_transformers import SentenceTransformer
+
+            # モデルのロード
+            _model = SentenceTransformer("all-MiniLM-L6-v2")
+
+            # 埋め込みデータのロード
+            if not os.path.exists(EMBED_PATH):
+                raise FileNotFoundError(
+                    f"埋め込みデータが見つかりません: {EMBED_PATH}\n"
+                    "prepare_dataset.pyを実行してデータを生成してください。"
+                )
+
+            with open(EMBED_PATH, "r") as f:
+                dataset = json.load(f)
+
+            _texts = [item["text"] for item in dataset]
+            _embeddings = [item["embedding"] for item in dataset]
+
+            # ペルソナデータのロード
+            if os.path.exists(PERSONA_PATH):
+                with open(PERSONA_PATH, "r") as f:
+                    _persona = json.load(f)
+
+            _initialized = True
+            return False  # 初回初期化完了
+        except json.JSONDecodeError as e:
+            raise Exception(f"JSONファイルの解析に失敗しました: {str(e)}") from e
+        except Exception as e:
+            raise Exception(f"AIエージェントの初期化に失敗しました: {str(e)}") from e
+
+
+def _ensure_initialized():
+    """
+    モデルとデータを遅延ロードする（初回呼び出し時のみ実行）
+    
+    スレッドセーフな実装により、複数の同時呼び出しでも安全に初期化されます。
+    ダブルチェックロッキングパターンを使用して、パフォーマンスを最適化しています。
+
+    Raises:
+        FileNotFoundError: EMBED_PATHが存在しない場合
+        json.JSONDecodeError: JSONファイルの解析に失敗した場合
+        Exception: モデルのロードに失敗した場合
+    """
+    global _model, _texts, _embeddings, _persona, _initialized
+
+    # 初期チェック（ロックなし）- パフォーマンス最適化
+    if _initialized:
+        return
+
+    # ダブルチェックロッキングパターン
+    with _init_lock:
+        # ロック取得後に再度チェック
+        if _initialized:
+            return
+
+        try:
+            # sentence_transformersを遅延インポート（起動時間の最適化）
+            from sentence_transformers import SentenceTransformer
+
+            # モデルのロード
+            _model = SentenceTransformer("all-MiniLM-L6-v2")
+
+            # 埋め込みデータのロード
+            if not os.path.exists(EMBED_PATH):
+                raise FileNotFoundError(
+                    f"埋め込みデータが見つかりません: {EMBED_PATH}\n"
+                    "prepare_dataset.pyを実行してデータを生成してください。"
+                )
+
+            with open(EMBED_PATH, "r") as f:
+                dataset = json.load(f)
+
+            _texts = [item["text"] for item in dataset]
+            _embeddings = [item["embedding"] for item in dataset]
+
+            # ペルソナデータのロード
+            if os.path.exists(PERSONA_PATH):
+                with open(PERSONA_PATH, "r") as f:
+                    _persona = json.load(f)
+
+            _initialized = True
+        except FileNotFoundError:
+            raise
+        except json.JSONDecodeError as e:
+            raise Exception(f"JSONファイルの解析に失敗しました: {str(e)}") from e
+        except Exception as e:
+            raise Exception(f"AIエージェントの初期化に失敗しました: {str(e)}") from e
 
 # ユーザーの質問に最も近いメッセージを検索
 
 
 def search_similar_message(query, top_k=3):
-    query_emb = model.encode(query)
-    scores = util.cos_sim(query_emb, embeddings)[0]
+    _ensure_initialized()
+    # utilを遅延インポート
+    from sentence_transformers import util
+
+    query_emb = _model.encode(query)
+    scores = util.cos_sim(query_emb, _embeddings)[0]
     top_results = scores.argsort(descending=True)[:top_k]
-    return [texts[i] for i in top_results]
+    return [_texts[i] for i in top_results]
 
 
 # 予測される返信を生成
@@ -167,6 +314,8 @@ def generate_response(query, top_k=5):
     Returns:
         生成された返信文字列
     """
+    _ensure_initialized()
+
     # 類似メッセージを検索
     similar_messages = search_similar_message(query, top_k)
 
@@ -174,7 +323,7 @@ def generate_response(query, top_k=5):
     if not similar_messages:
         return "わかりません。"
 
-    if not persona:
+    if not _persona:
         # ペルソナがない場合は、類似メッセージをそのまま返す
         return similar_messages[0]
 
@@ -207,17 +356,17 @@ def generate_response(query, top_k=5):
 
     # 挨拶への応答
     if is_greeting:
-        greetings = persona.get("sample_greetings", [])
+        greetings = _persona.get("sample_greetings", [])
         if greetings:
             response = random.choice(greetings)
             return response
 
     # 質問への応答生成（複数行の詳細な回答を構築）
     if is_question:
-        return generate_detailed_answer(similar_messages, persona)
+        return generate_detailed_answer(similar_messages, _persona)
 
     # 通常の会話応答（ペルソナに沿った短めの受け答え）
-    return generate_casual_response(similar_messages, persona)
+    return generate_casual_response(similar_messages, _persona)
 
 
 # テスト用
