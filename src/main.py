@@ -23,21 +23,25 @@ intents.guilds = True
 client = discord.Client(intents=intents)
 
 # ai_agent モジュールのインポート（埋め込みデータが存在する場合のみ）
+# 注意: 遅延ロードにより、実際のデータロードは初回応答時に行われます
 generate_response = None
 if os.path.exists(EMBED_PATH):
     try:
         from ai_agent import generate_response
 
-        print("AIエージェント機能が正常にロードされました。")
+        print("✅ AIエージェント機能が有効化されました")
+        print("   💡 モデルとデータは初回応答時に自動的にロードされます")
     except Exception as e:
-        print(f"AIエージェントのロード中にエラーが発生しました: {e}")
+        print(f"❌ AIエージェントのロード中にエラーが発生しました: {e}")
         generate_response = None
 
 
 @client.event
 async def on_ready():
-    print(f"Logged in as {client.user}")
-    print("Bot is running and ready to answer.")
+    print(f"✅ ログイン成功: {client.user}")
+    print("🤖 Botが起動し、メッセージの受信を開始しました")
+    if generate_response:
+        print("💬 メンションまたは !ask コマンドで質問できます")
 
 
 @client.event
@@ -57,7 +61,18 @@ async def on_message(message):
         if os.path.exists(EMBED_PATH) and generate_response:
             # 予測返信を生成
             try:
-                response = generate_response(query)
+                # 初回応答時にローディングメッセージを表示
+                import ai_agent
+
+                if not ai_agent._initialized:
+                    loading_msg = await message.channel.send(
+                        "🔄 初回起動中... AIモデルとデータをロードしています（数秒かかります）"
+                    )
+                    response = generate_response(query)
+                    await loading_msg.delete()
+                else:
+                    response = generate_response(query)
+
                 await message.channel.send(response)
             except Exception as e:
                 await message.channel.send(f"エラーが発生しました: {str(e)}")

@@ -7,29 +7,50 @@ from sentence_transformers import SentenceTransformer, util
 
 EMBED_PATH = os.path.join(os.path.dirname(__file__), "../data/embeddings.json")
 PERSONA_PATH = os.path.join(os.path.dirname(__file__), "../data/persona.json")
-model = SentenceTransformer("all-MiniLM-L6-v2")
 
-# 埋め込みデータのロード
-with open(EMBED_PATH, "r") as f:
-    dataset = json.load(f)
+# 遅延ロード用のグローバル変数（キャッシュ）
+_model = None
+_texts = None
+_embeddings = None
+_persona = None
+_initialized = False
 
-texts = [item["text"] for item in dataset]
-embeddings = [item["embedding"] for item in dataset]
 
-# ペルソナデータのロード
-persona = None
-if os.path.exists(PERSONA_PATH):
-    with open(PERSONA_PATH, "r") as f:
-        persona = json.load(f)
+def _ensure_initialized():
+    """
+    モデルとデータを遅延ロードする（初回呼び出し時のみ実行）
+    """
+    global _model, _texts, _embeddings, _persona, _initialized
+
+    if _initialized:
+        return
+
+    # モデルのロード
+    _model = SentenceTransformer("all-MiniLM-L6-v2")
+
+    # 埋め込みデータのロード
+    with open(EMBED_PATH, "r") as f:
+        dataset = json.load(f)
+
+    _texts = [item["text"] for item in dataset]
+    _embeddings = [item["embedding"] for item in dataset]
+
+    # ペルソナデータのロード
+    if os.path.exists(PERSONA_PATH):
+        with open(PERSONA_PATH, "r") as f:
+            _persona = json.load(f)
+
+    _initialized = True
 
 # ユーザーの質問に最も近いメッセージを検索
 
 
 def search_similar_message(query, top_k=3):
-    query_emb = model.encode(query)
-    scores = util.cos_sim(query_emb, embeddings)[0]
+    _ensure_initialized()
+    query_emb = _model.encode(query)
+    scores = util.cos_sim(query_emb, _embeddings)[0]
     top_results = scores.argsort(descending=True)[:top_k]
-    return [texts[i] for i in top_results]
+    return [_texts[i] for i in top_results]
 
 
 # 予測される返信を生成
@@ -209,6 +230,8 @@ def generate_response(query, top_k=5):
     Returns:
         生成された返信文字列
     """
+    _ensure_initialized()
+
     # 類似メッセージを検索
     similar_messages = search_similar_message(query, top_k)
 
@@ -216,7 +239,7 @@ def generate_response(query, top_k=5):
     if not similar_messages:
         return "わかりません。"
 
-    if not persona:
+    if not _persona:
         # ペルソナがない場合は、類似メッセージをそのまま返す
         return similar_messages[0]
 
@@ -249,17 +272,17 @@ def generate_response(query, top_k=5):
 
     # 挨拶への応答
     if is_greeting:
-        greetings = persona.get("sample_greetings", [])
+        greetings = _persona.get("sample_greetings", [])
         if greetings:
             response = random.choice(greetings)
             return response
 
     # 質問への応答生成（複数行の詳細な回答を構築）
     if is_question:
-        return generate_detailed_answer(similar_messages, persona)
+        return generate_detailed_answer(similar_messages, _persona)
 
     # 通常の会話応答（ペルソナに沿った短めの受け答え）
-    return generate_casual_response(similar_messages, persona)
+    return generate_casual_response(similar_messages, _persona)
 
 
 # テスト用
