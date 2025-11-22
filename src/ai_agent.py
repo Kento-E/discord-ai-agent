@@ -250,7 +250,7 @@ def generate_detailed_answer(similar_messages, persona):
         # 各文を句点で終わらせる
         formatted_parts = []
         for part in response_parts:
-            # 途中の文は句点で終わらせる
+            # 各文を句点で終わらせる
             if not re.search(r"[。！？]$", part):
                 formatted_parts.append(part + "。")
             else:
