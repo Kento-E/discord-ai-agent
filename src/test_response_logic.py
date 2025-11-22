@@ -35,16 +35,6 @@ def test_persona_generation():
     common_words = Counter(all_words).most_common(10)
     print(f"✓ 頻出単語: {[word for word, count in common_words]}")
 
-    # 文末表現の抽出（参考情報として表示のみ）
-    sentence_endings = []
-    for text in test_messages:
-        if len(text) >= 2:
-            endings = re.findall(r"[^。！？\n]{1,3}[。！？]?$", text)
-            sentence_endings.extend(endings)
-
-    common_endings = Counter(sentence_endings).most_common(5)
-    print(f"✓ 文末表現（参考）: {[ending for ending, count in common_endings]}")
-
     # 挨拶表現の検出
     greetings = []
     greeting_patterns = ["おはよう", "こんにちは", "お疲れ", "ありがとう", "よろしく"]
