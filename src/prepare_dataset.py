@@ -49,16 +49,6 @@ def generate_persona(texts):
 
     common_words = Counter(all_words).most_common(50)
 
-    # 文末表現の抽出
-    sentence_endings = []
-    for text in texts:
-        # 文末の2-3文字を抽出
-        if len(text) >= 2:
-            endings = re.findall(r"[^。！？\n]{1,3}[。！？]?$", text)
-            sentence_endings.extend(endings)
-
-    common_endings = Counter(sentence_endings).most_common(20)
-
     # 挨拶表現の検出
     greetings = []
     greeting_patterns = [
@@ -89,7 +79,6 @@ def generate_persona(texts):
         "total_messages": total_messages,
         "avg_message_length": round(avg_length, 2),
         "common_words": [word for word, count in common_words[:30]],
-        "common_endings": [ending for ending, count in common_endings[:10]],
         "sample_greetings": greetings[:10],
         "sample_messages": sample_messages,
         "description": (
