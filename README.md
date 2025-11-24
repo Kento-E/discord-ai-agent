@@ -34,14 +34,6 @@ pre-commit install
 
 これにより、コミット前に自動的にリンターが実行され、コード品質が保たれます。詳細は[リンターセットアップガイド](docs/LINTER_SETUP.md)を参照してください。
 
-3. 環境変数を設定
-
-以下の環境変数を設定してください：
-
-- `DISCORD_TOKEN`: Discord Botのトークン
-- `TARGET_GUILD_ID`: 取得対象のサーバーID
-- `GEMINI_API_KEY`（オプション）: Google Gemini APIキー（[詳細](#llm-api統合オプション)）
-
 ## 知識データの生成方法
 
 Botを初めて使用する場合、または新しいメッセージを学習させたい場合は、以下の手順で知識データを生成してください。
@@ -110,6 +102,8 @@ Google Gemini APIを使用して、より自然で創造的な応答を生成で
 詳細な設定手順については、[LLM API統合ガイド](docs/LLM_API_SETUP.md)をご覧ください。
 
 ## ローカル環境での実行
+
+以下の環境変数を設定してBotを実行します：
 
 ```bash
 export DISCORD_TOKEN="your_bot_token_here"
