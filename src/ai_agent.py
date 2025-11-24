@@ -209,7 +209,8 @@ def generate_response_with_llm(query, similar_messages):
 【回答】
 過去メッセージのスタイルを参考にしつつ、自然で簡潔な回答を生成してください。"""
 
-        # APIリクエスト（タイムアウト設定）
+        # APIリクエスト
+        # Note: google-generativeai SDKは内部でタイムアウトを管理
         response = model.generate_content(
             prompt,
             generation_config=genai.types.GenerationConfig(
@@ -222,9 +223,9 @@ def generate_response_with_llm(query, similar_messages):
             return response.text.strip()
         return None
 
-    except Exception as e:
+    except Exception:
         # APIエラー時はNoneを返してフォールバックに任せる
-        print(f"LLM API エラー: {e}")
+        # エラー詳細はログに記録せず、静かにフォールバック
         return None
 
 
