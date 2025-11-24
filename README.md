@@ -40,10 +40,7 @@ pre-commit install
 
 - `DISCORD_TOKEN`: Discord Botのトークン
 - `TARGET_GUILD_ID`: 取得対象のサーバーID
-- `GEMINI_API_KEY`（オプション）: Google Gemini APIキー
-  - 設定すると、LLM APIを使用した高度な応答生成が可能になります
-  - 未設定の場合は、従来のロジックで動作します（フォールバック）
-  - 無料枠で利用可能: [Gemini API](https://ai.google.dev/)
+- `GEMINI_API_KEY`（オプション）: Google Gemini APIキー（[詳細](#llm-api統合オプション)）
 
 ## 知識データの生成方法
 
