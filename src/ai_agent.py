@@ -22,12 +22,14 @@ import threading
 
 EMBED_PATH = os.path.join(os.path.dirname(__file__), "../data/embeddings.json")
 PERSONA_PATH = os.path.join(os.path.dirname(__file__), "../data/persona.json")
+PROMPTS_PATH = os.path.join(os.path.dirname(__file__), "../config/prompts.json")
 
 # 遅延ロード用のグローバル変数（キャッシュ）
 _model = None
 _texts = None
 _embeddings = None
 _persona = None
+_prompts = None
 _initialized = False
 _init_lock = threading.Lock()
 
@@ -167,6 +169,34 @@ def _ensure_initialized():
             raise Exception(f"AIエージェントの初期化に失敗しました: {str(e)}") from e
 
 
+def _load_prompts():
+    """
+    プロンプト設定をファイルから読み込む（キャッシュあり）
+
+    Returns:
+        dict: プロンプト設定
+    """
+    global _prompts
+    if _prompts is None:
+        prompts_path = os.path.abspath(PROMPTS_PATH)
+        if os.path.exists(prompts_path):
+            with open(prompts_path, "r", encoding="utf-8") as f:
+                _prompts = json.load(f)
+        else:
+            # デフォルト値
+            _prompts = {
+                "llm_system_prompt": "あなたは過去のDiscordメッセージから学習した"
+                "AIアシスタントです。\n以下の過去メッセージを参考に、"
+                "ユーザーの質問に自然な日本語で回答してください。",
+                "llm_response_instruction": "過去メッセージのスタイルを参考にしつつ、"
+                "自然で簡潔な回答を生成してください。",
+                "llm_context_header": "【過去メッセージ】",
+                "llm_query_header": "【ユーザーの質問】",
+                "llm_response_header": "【回答】",
+            }
+    return _prompts
+
+
 def generate_response_with_llm(query, similar_messages):
     """
     LLM APIを使用して、過去メッセージを文脈として応答を生成
@@ -196,18 +226,20 @@ def generate_response_with_llm(query, similar_messages):
         # 文脈として過去メッセージを整形
         context = "\n".join([f"- {msg}" for msg in similar_messages[:5]])
 
-        # プロンプトの構築
-        prompt = f"""あなたは過去のDiscordメッセージから学習したAIアシスタントです。
-以下の過去メッセージを参考に、ユーザーの質問に自然な日本語で回答してください。
+        # プロンプト設定を読み込み
+        prompts = _load_prompts()
 
-【過去メッセージ】
+        # プロンプトの構築（外部設定ファイルから読み込み）
+        prompt = f"""{prompts['llm_system_prompt']}
+
+{prompts['llm_context_header']}
 {context}
 
-【ユーザーの質問】
+{prompts['llm_query_header']}
 {query}
 
-【回答】
-過去メッセージのスタイルを参考にしつつ、自然で簡潔な回答を生成してください。"""
+{prompts['llm_response_header']}
+{prompts['llm_response_instruction']}"""
 
         # APIリクエスト
         # Note: google-generativeai SDKは内部でタイムアウトを管理
