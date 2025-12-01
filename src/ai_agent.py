@@ -208,6 +208,13 @@ def generate_response_with_llm(query, similar_messages):
     Returns:
         LLMが生成した応答文字列、またはNone（API使用不可の場合）
     """
+    # エラーハンドラーを遅延インポート
+    from src.llm_error_handler import (
+        handle_gemini_exception,
+        log_llm_request,
+        log_llm_response,
+    )
+
     # 環境変数からAPIキーを取得
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
@@ -241,23 +248,31 @@ def generate_response_with_llm(query, similar_messages):
 {prompts['llm_response_header']}
 {prompts['llm_response_instruction']}"""
 
-        # APIリクエスト
-        # Note: google-generativeai SDKは内部でタイムアウトを管理
+        # リクエストをログに記録
+        log_llm_request(query, len(similar_messages[:5]))
+
+        # APIリクエスト（タイムアウトを明示的に設定）
         response = model.generate_content(
             prompt,
             generation_config=genai.types.GenerationConfig(
                 temperature=0.7,
                 max_output_tokens=500,
             ),
+            request_options={"timeout": 30},
         )
 
         if response and response.text:
-            return response.text.strip()
+            result = response.text.strip()
+            log_llm_response(True, len(result))
+            return result
+
+        log_llm_response(False)
         return None
 
-    except Exception:
-        # APIエラー時はNoneを返してフォールバックに任せる
-        # エラー詳細はログに記録せず、静かにフォールバック
+    except Exception as e:
+        # 例外を適切に処理してログ出力
+        should_retry, error_type = handle_gemini_exception(e)
+        # フォールバックに任せる（リトライは将来の拡張で対応）
         return None
 
 
