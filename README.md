@@ -108,7 +108,6 @@ Google Gemini APIを使用して、より自然で創造的な応答を生成で
 ```bash
 export DISCORD_TOKEN="your_bot_token_here"
 export TARGET_GUILD_ID="your_guild_id_here"
-export GEMINI_API_KEY="your_api_key_here"  # オプション
 
 # 1. メッセージ取得
 python src/fetch_messages.py
@@ -119,6 +118,8 @@ python src/prepare_dataset.py
 # 3. Bot起動
 python src/main.py
 ```
+
+**LLM機能を使用する場合**: [LLM API統合ガイド](docs/LLM_API_SETUP.md)を参照してください。
 
 ### GitHub Actions上での実行
 
@@ -131,7 +132,7 @@ GitHub Actions上でDiscord Botを実行できます。
    - `DISCORD_TOKEN`: Discord Botのトークン
    - `TARGET_GUILD_ID`: 取得対象のサーバーID
    - `ENCRYPTION_KEY`: 知識データの暗号化/復号化に使用する鍵（詳細: [.github/workflows/ENCRYPTION_KEY_SETUP.md](.github/workflows/ENCRYPTION_KEY_SETUP.md)）
-   - `GEMINI_API_KEY`（オプション）: Google Gemini APIキー（LLM応答生成を有効化）
+   - `GEMINI_API_KEY`（オプション）: [LLM API統合ガイド](docs/LLM_API_SETUP.md)を参照
 
 #### 2. 知識データの生成
 
