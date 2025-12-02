@@ -12,7 +12,7 @@ def test_llm_api_availability():
 
     api_key = os.environ.get("GEMINI_API_KEY")
     if api_key:
-        print(f"✓ GEMINI_API_KEY が設定されています（長さ: {len(api_key)}文字）")
+        print("✓ GEMINI_API_KEY が設定されています")
         return True
     else:
         print("⚠ GEMINI_API_KEY が設定されていません")
