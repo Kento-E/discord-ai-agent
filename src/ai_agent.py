@@ -22,7 +22,7 @@ import threading
 
 EMBED_PATH = os.path.join(os.path.dirname(__file__), "../data/embeddings.json")
 PERSONA_PATH = os.path.join(os.path.dirname(__file__), "../data/persona.json")
-PROMPTS_PATH = os.path.join(os.path.dirname(__file__), "../config/prompts.json")
+PROMPTS_PATH = os.path.join(os.path.dirname(__file__), "../config/prompts.yaml")
 
 # 遅延ロード用のグローバル変数（キャッシュ）
 _model = None
@@ -180,8 +180,10 @@ def _load_prompts():
     if _prompts is None:
         prompts_path = os.path.abspath(PROMPTS_PATH)
         if os.path.exists(prompts_path):
+            import yaml
+
             with open(prompts_path, "r", encoding="utf-8") as f:
-                _prompts = json.load(f)
+                _prompts = yaml.safe_load(f)
         else:
             # デフォルト値
             _prompts = {
