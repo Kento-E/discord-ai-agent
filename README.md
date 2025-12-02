@@ -2,14 +2,16 @@
 
 このプロジェクトは、Discordサーバーの過去メッセージを学習したAIエージェントBotを無料で稼働させるアプリです。
 
-過去のメッセージから学習したペルソナを基に、入力に対する予測返信を自動生成します。外部AIサービスを使わず、完全無料で稼働できます。
+過去のメッセージから学習したペルソナを基に、入力に対する予測返信を自動生成します。
 
 ## 機能概要
 
 - Discord APIを使ったメッセージ取得
 - 取得メッセージのAI学習データ化
 - **過去メッセージからペルソナを生成し、予測される返信を自動生成**
-- 無料AIエージェントによる応答（外部APIなし）
+- **LLM API統合による高度な応答生成（オプション）**
+  - Google Gemini API対応（無料枠で利用可能）
+  - APIキー未設定時は従来のロジックで動作（フォールバック機能）
 - Discord Botとして稼働
 
 ## クイックスタート
@@ -31,13 +33,6 @@ pre-commit install
 ```
 
 これにより、コミット前に自動的にリンターが実行され、コード品質が保たれます。詳細は[リンターセットアップガイド](docs/LINTER_SETUP.md)を参照してください。
-
-3. 環境変数を設定
-
-以下の環境変数を設定してください：
-
-- `DISCORD_TOKEN`: Discord Botのトークン
-- `TARGET_GUILD_ID`: 取得対象のサーバーID
 
 ## 知識データの生成方法
 
@@ -100,7 +95,15 @@ python src/main.py
 
 Botの使い方や応答の詳細については、[詳細な使い方ガイド](docs/USAGE.md#botの使い方)をご覧ください。
 
-### ローカル環境での実行
+## LLM API統合（オプション）
+
+Google Gemini APIを使用して、より自然で創造的な応答を生成できます。APIキーが未設定の場合は従来のロジックで動作します。
+
+詳細な設定手順については、[LLM API統合ガイド](docs/LLM_API_SETUP.md)をご覧ください。
+
+## ローカル環境での実行
+
+以下の環境変数を設定してBotを実行します：
 
 ```bash
 export DISCORD_TOKEN="your_bot_token_here"
@@ -116,6 +119,8 @@ python src/prepare_dataset.py
 python src/main.py
 ```
 
+**LLM機能を使用する場合**: [LLM API統合ガイド](docs/LLM_API_SETUP.md)を参照してください。
+
 ### GitHub Actions上での実行
 
 GitHub Actions上でDiscord Botを実行できます。
@@ -127,6 +132,7 @@ GitHub Actions上でDiscord Botを実行できます。
    - `DISCORD_TOKEN`: Discord Botのトークン
    - `TARGET_GUILD_ID`: 取得対象のサーバーID
    - `ENCRYPTION_KEY`: 知識データの暗号化/復号化に使用する鍵（詳細: [.github/workflows/ENCRYPTION_KEY_SETUP.md](.github/workflows/ENCRYPTION_KEY_SETUP.md)）
+   - `GEMINI_API_KEY`（オプション）: [LLM API統合ガイド](docs/LLM_API_SETUP.md)を参照
 
 #### 2. 知識データの生成
 

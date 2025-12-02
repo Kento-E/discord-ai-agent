@@ -13,6 +13,7 @@ AIエージェントモジュール
 この設計により、モジュールのインポートは即座に完了し、
 Bot起動時間が大幅に短縮されます。
 """
+
 import json
 import os
 import random
@@ -21,12 +22,15 @@ import threading
 
 EMBED_PATH = os.path.join(os.path.dirname(__file__), "../data/embeddings.json")
 PERSONA_PATH = os.path.join(os.path.dirname(__file__), "../data/persona.json")
+PROMPTS_PATH = os.path.join(os.path.dirname(__file__), "../config/prompts.yaml")
 
 # 遅延ロード用のグローバル変数（キャッシュ）
 _model = None
 _texts = None
 _embeddings = None
 _persona = None
+_prompts = None
+_gemini_model = None  # Gemini APIモデルのキャッシュ
 _initialized = False
 _init_lock = threading.Lock()
 
@@ -34,7 +38,7 @@ _init_lock = threading.Lock()
 def is_initialized():
     """
     初期化済みかどうかを返す
-    
+
     Returns:
         bool: 初期化済みの場合True、未初期化の場合False
     """
@@ -44,37 +48,37 @@ def is_initialized():
 def ensure_initialized_with_callback(callback=None):
     """
     初期化を実行し、コールバックを通じて初回初期化かどうかを通知する
-    
+
     この関数は初期化処理を実行し、初回の初期化時のみコールバックを呼び出します。
     2回目以降の呼び出しでは何もせず、即座にTrueを返します。
-    
+
     Args:
         callback: 初回初期化時に呼び出される関数（引数なし）
-    
+
     Returns:
         bool: 既に初期化済みだった場合True、今回初めて初期化した場合False
-    
+
     Raises:
         FileNotFoundError: EMBED_PATHが存在しない場合
         json.JSONDecodeError: JSONファイルの解析に失敗した場合
         Exception: モデルのロードに失敗した場合
     """
     global _model, _texts, _embeddings, _persona, _initialized
-    
+
     # 既に初期化済み
     if _initialized:
         return True
-    
+
     # ダブルチェックロッキングパターン
     with _init_lock:
         # ロック取得後に再度チェック
         if _initialized:
             return True
-        
+
         # 初回初期化開始
         if callback:
             callback()
-        
+
         try:
             # sentence_transformersを遅延インポート（起動時間の最適化）
             from sentence_transformers import SentenceTransformer
@@ -111,7 +115,7 @@ def ensure_initialized_with_callback(callback=None):
 def _ensure_initialized():
     """
     モデルとデータを遅延ロードする（初回呼び出し時のみ実行）
-    
+
     スレッドセーフな実装により、複数の同時呼び出しでも安全に初期化されます。
     ダブルチェックロッキングパターンを使用して、パフォーマンスを最適化しています。
 
@@ -164,6 +168,134 @@ def _ensure_initialized():
             raise Exception(f"JSONファイルの解析に失敗しました: {str(e)}") from e
         except Exception as e:
             raise Exception(f"AIエージェントの初期化に失敗しました: {str(e)}") from e
+
+
+def _load_prompts():
+    """
+    プロンプト設定をファイルから読み込む（キャッシュあり）
+
+    Returns:
+        dict: プロンプト設定
+    """
+    global _prompts
+    if _prompts is None:
+        prompts_path = os.path.abspath(PROMPTS_PATH)
+        if os.path.exists(prompts_path):
+            import yaml
+
+            with open(prompts_path, "r", encoding="utf-8") as f:
+                _prompts = yaml.safe_load(f)
+        else:
+            # デフォルト値
+            _prompts = {
+                "llm_system_prompt": "あなたは過去のDiscordメッセージから学習した"
+                "AIアシスタントです。\n以下の過去メッセージを参考に、"
+                "ユーザーの質問に自然な日本語で回答してください。",
+                "llm_response_instruction": "過去メッセージのスタイルを参考にしつつ、"
+                "自然で簡潔な回答を生成してください。",
+                "llm_context_header": "【過去メッセージ】",
+                "llm_query_header": "【ユーザーの質問】",
+                "llm_response_header": "【回答】",
+            }
+    return _prompts
+
+
+def generate_response_with_llm(query, similar_messages):
+    """
+    LLM APIを使用して、過去メッセージを文脈として応答を生成
+
+    Args:
+        query: ユーザーからの入力メッセージ
+        similar_messages: 類似度の高いメッセージのリスト
+
+    Returns:
+        LLMが生成した応答文字列、またはNone（API使用不可の場合）
+    """
+    # エラーハンドラーを遅延インポート
+    from src.llm_error_handler import (
+        handle_gemini_exception,
+        log_llm_request,
+        log_llm_response,
+        should_retry_with_backoff,
+        wait_for_retry,
+        MAX_RETRIES,
+    )
+
+    # 環境変数からAPIキーを取得
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        return None
+
+    global _gemini_model
+
+    # google.generativeaiを遅延インポート（API使用時のみ）
+    import google.generativeai as genai
+
+    # APIの設定
+    genai.configure(api_key=api_key)
+
+    # モデルのインスタンスをキャッシュして再利用（パフォーマンス向上）
+    if _gemini_model is None:
+        _gemini_model = genai.GenerativeModel("gemini-1.5-flash")
+
+    # 文脈として過去メッセージを整形
+    context = "\n".join([f"- {msg}" for msg in similar_messages[:5]])
+
+    # プロンプト設定を読み込み
+    prompts = _load_prompts()
+
+    # プロンプトの構築（外部設定ファイルから読み込み）
+    prompt = f"""{prompts['llm_system_prompt']}
+
+{prompts['llm_context_header']}
+{context}
+
+{prompts['llm_query_header']}
+{query}
+
+{prompts['llm_response_header']}
+{prompts['llm_response_instruction']}"""
+
+    # リクエストをログに記録
+    log_llm_request(query, len(similar_messages[:5]))
+
+    # リトライループ
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            # APIリクエスト（タイムアウトを明示的に設定）
+            response = _gemini_model.generate_content(
+                prompt,
+                generation_config=genai.types.GenerationConfig(
+                    temperature=0.7,
+                    max_output_tokens=500,
+                ),
+                request_options={"timeout": 30},
+            )
+
+            if response and response.text:
+                result = response.text.strip()
+                log_llm_response(True, len(result))
+                return result
+
+            log_llm_response(False)
+            return None
+
+        except Exception as e:
+            # 例外を評価し、リトライすべきか判断
+            should_retry, wait_time = should_retry_with_backoff(e, attempt)
+
+            if should_retry:
+                wait_for_retry(wait_time)
+                continue
+            else:
+                # リトライ不可の場合はフォールバック
+                log_llm_response(False)
+                return None
+
+    # 最大リトライ回数に達した場合
+    log_llm_response(False)
+    return None
+
 
 # ユーザーの質問に最も近いメッセージを検索
 
@@ -323,6 +455,12 @@ def generate_response(query, top_k=5):
     if not similar_messages:
         return "わかりません。"
 
+    # LLM APIを試行（環境変数が設定されている場合）
+    llm_response = generate_response_with_llm(query, similar_messages)
+    if llm_response:
+        return llm_response
+
+    # フォールバック: LLM APIが使用できない場合は従来のロジックを使用
     if not _persona:
         # ペルソナがない場合は、類似メッセージをそのまま返す
         return similar_messages[0]
