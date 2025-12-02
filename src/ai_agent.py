@@ -30,6 +30,7 @@ _texts = None
 _embeddings = None
 _persona = None
 _prompts = None
+_gemini_model = None  # Gemini APIモデルのキャッシュ
 _initialized = False
 _init_lock = threading.Lock()
 
@@ -223,14 +224,17 @@ def generate_response_with_llm(query, similar_messages):
         return None
 
     try:
+        global _gemini_model
+        
         # google.generativeaiを遅延インポート（API使用時のみ）
         import google.generativeai as genai
 
         # APIの設定
         genai.configure(api_key=api_key)
 
-        # モデルの設定（Gemini 1.5 Flash - 無料枠で利用可能）
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        # モデルのインスタンスをキャッシュして再利用（パフォーマンス向上）
+        if _gemini_model is None:
+            _gemini_model = genai.GenerativeModel("gemini-1.5-flash")
 
         # 文脈として過去メッセージを整形
         context = "\n".join([f"- {msg}" for msg in similar_messages[:5]])
@@ -254,7 +258,7 @@ def generate_response_with_llm(query, similar_messages):
         log_llm_request(query, len(similar_messages[:5]))
 
         # APIリクエスト（タイムアウトを明示的に設定）
-        response = model.generate_content(
+        response = _gemini_model.generate_content(
             prompt,
             generation_config=genai.types.GenerationConfig(
                 temperature=0.7,
