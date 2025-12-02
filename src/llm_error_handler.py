@@ -14,7 +14,8 @@ logger = logging.getLogger(__name__)
 # リトライ設定
 MAX_RETRIES = 3
 INITIAL_BACKOFF_SECONDS = 1.0
-MAX_BACKOFF_SECONDS = 30.0
+# MAX_BACKOFF_SECONDSはMAX_RETRIESから算出（最後のリトライ時の待機時間）
+MAX_BACKOFF_SECONDS = INITIAL_BACKOFF_SECONDS * (2 ** (MAX_RETRIES - 1))
 
 
 class LLMError(Exception):
