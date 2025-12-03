@@ -29,12 +29,31 @@ class MyClient(discord.Client):
 
     async def setup_hook(self):
         # スラッシュコマンドをギルドに同期
-        guild = discord.Object(id=GUILD_ID)
-        self.tree.copy_global_to(guild=guild)
-        await self.tree.sync(guild=guild)
+        try:
+            guild = discord.Object(id=GUILD_ID)
+            self.tree.copy_global_to(guild=guild)
+            await self.tree.sync(guild=guild)
+            print("✅ スラッシュコマンドをギルドに同期しました")
+        except Exception as e:
+            print(f"⚠️ スラッシュコマンドの同期に失敗しました: {e}")
+            print(
+                "   Bot自体は動作しますが、/modeコマンドが使用できない可能性があります"
+            )
 
 
 client = MyClient(intents=intents)
+
+
+def is_llm_mode_enabled():
+    """
+    LLMモードが有効かどうかを判定
+
+    Returns:
+        bool: GEMINI_API_KEYが設定されている場合True、そうでない場合False
+    """
+    llm_api_key = os.environ.get("GEMINI_API_KEY")
+    return llm_api_key is not None and llm_api_key.strip() != ""
+
 
 # ai_agent モジュールのインポート（埋め込みデータが存在する場合のみ）
 # 注意: 遅延ロードにより、実際のデータロードは初回応答時に行われます
@@ -126,8 +145,7 @@ async def on_message(message):
 async def mode_command(interaction: discord.Interaction):
     """Botの実行モード（LLMモードか否か）を表示するスラッシュコマンド"""
     # LLMモードの判定
-    llm_api_key = os.environ.get("GEMINI_API_KEY")
-    is_llm_mode = llm_api_key is not None and llm_api_key.strip() != ""
+    is_llm_mode = is_llm_mode_enabled()
 
     # 知識データの有無を確認
     has_knowledge_data = os.path.exists(EMBED_PATH)
