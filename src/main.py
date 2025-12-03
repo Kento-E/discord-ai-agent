@@ -224,7 +224,9 @@ async def mode_command(interaction: discord.Interaction):
         )
 
 
-@client.tree.command(name="ask", description="Botの実行モードを確認します")
+@client.tree.command(
+    name="ask", description="Botの実行モードを確認します（/modeのエイリアス）"
+)
 async def ask_command(interaction: discord.Interaction):
     """Botの実行モード（LLMモードか否か）を表示するスラッシュコマンド（/modeのエイリアス）"""
     try:
