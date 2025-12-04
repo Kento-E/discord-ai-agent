@@ -71,7 +71,7 @@ if os.path.exists(EMBED_PATH):
 
 @client.event
 async def on_ready():
-    print(f"✅ ログイン成功: {client.user}")
+    print("✅ ログイン成功")
     print("🤖 Botが起動し、メッセージの受信を開始しました")
     if generate_response:
         print("💬 メンションまたは !ask コマンドで質問できます")
@@ -91,6 +91,13 @@ async def on_message(message):
         )
         if not query:
             await message.channel.send("質問内容を入力してください。")
+            return
+        # スラッシュコマンドらしき入力を検出した場合は案内メッセージを表示
+        if query.startswith("/"):
+            await message.channel.send(
+                "スラッシュコマンド（例: `/mode`）は単独で入力する必要があります。\n"
+                "メンションや `!ask` を使用する場合は、質問内容のみを入力してください（スラッシュは不要です）。"
+            )
             return
         if os.path.exists(EMBED_PATH) and generate_response:
             # 予測返信を生成

@@ -18,6 +18,14 @@ on:
           - '120'
           - '180'
           - '360'
+      debug_mode:
+        description: 'デバッグモード（ログを即座に出力）'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
 
 permissions:
   contents: read
@@ -132,16 +140,24 @@ jobs:
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
           TARGET_GUILD_ID: ${{ secrets.TARGET_GUILD_ID }}
+          PYTHONUNBUFFERED: ${{ github.event.inputs.debug_mode == 'true' && '1' || '0' }}
         run: |
           echo "🤖 Discord Botを起動します"
           echo "起動理由: ${{ github.event.inputs.reason || '手動起動' }}"
           echo "実行時間上限: ${{ github.event.inputs.timeout_minutes || '60' }}分"
+          if [ "${{ github.event.inputs.debug_mode }}" == "true" ]; then
+            echo "🔍 デバッグモード: 有効"
+          fi
           echo ""
           echo "⚠️ 注意: GitHub Actionsの制限により、最大6時間（360分）まで実行可能です"
           echo "⚠️ タイムアウトに達すると自動的に停止します"
           echo ""
           echo "🔄 Botを起動しています..."
-          python src/main.py
+          if [ "${{ github.event.inputs.debug_mode }}" == "true" ]; then
+            python -u src/main.py
+          else
+            python src/main.py
+          fi
 
       - name: 実行結果をサマリーに出力
         if: always()
@@ -177,5 +193,6 @@ jobs:
           echo "### 📝 実行情報" >> $GITHUB_STEP_SUMMARY
           echo "- **起動理由**: ${{ github.event.inputs.reason || '手動起動' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **タイムアウト設定**: ${{ github.event.inputs.timeout_minutes || '60' }}分" >> $GITHUB_STEP_SUMMARY
+          echo "- **デバッグモード**: ${{ github.event.inputs.debug_mode == 'true' && '有効' || '無効' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **実行者**: @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
           echo "- **実行日時**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
