@@ -71,7 +71,7 @@ if os.path.exists(EMBED_PATH):
 
 @client.event
 async def on_ready():
-    print(f"✅ ログイン成功: {client.user}")
+    print("✅ ログイン成功")
     print("🤖 Botが起動し、メッセージの受信を開始しました")
     if generate_response:
         print("💬 メンションまたは !ask コマンドで質問できます")
