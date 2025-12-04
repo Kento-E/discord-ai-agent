@@ -214,7 +214,6 @@ def generate_response_with_llm(query, similar_messages):
     # エラーハンドラーを遅延インポート
     from llm_error_handler import (
         MAX_RETRIES,
-        handle_gemini_exception,
         log_llm_request,
         log_llm_response,
         should_retry_with_backoff,
