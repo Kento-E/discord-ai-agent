@@ -95,8 +95,8 @@ async def on_message(message):
         # スラッシュコマンドらしき入力を検出した場合は案内メッセージを表示
         if query.startswith("/"):
             await message.channel.send(
-                "スラッシュコマンドは `/mode` のように入力してください。\n"
-                "メンションと一緒に使用する場合は、スラッシュなしで質問内容を入力してください。"
+                "スラッシュコマンド（例: `/mode`）は単独で入力する必要があります。\n"
+                "メンションや `!ask` を使用する場合は、質問内容のみを入力してください（スラッシュは不要です）。"
             )
             return
         if os.path.exists(EMBED_PATH) and generate_response:
