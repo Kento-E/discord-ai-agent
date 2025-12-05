@@ -195,6 +195,51 @@ PRがmainブランチにマージされたときに、同じベースブラン�
 - エラーが発生しても処理は継続します（他のPRの更新を妨げない）
 - mainブランチへのPRマージ時のみ動作します
 
+### 7. Secrets疎通テスト (`test-secrets.yml`)
+
+#### 概要
+
+Discord BotとGemini APIの認証情報（Secrets）の疎通を確認するワークフローです。DISCORD_TOKEN、TARGET_GUILD_ID、GEMINI_API_KEYの有効性を検証し、APIへの接続を確認します。
+
+#### トリガー条件
+
+- 手動実行（`workflow_dispatch`）
+  - テストを実行する理由（任意）
+  - 詳細情報を表示するかどうか（任意）
+- mainブランチへのpush（対象ファイルが変更された場合のみ）
+  - `.github/workflows/test-secrets.yml`
+  - `src/test_connection.py`
+  - `src/test_gemini_connection.py`
+
+#### 動作
+
+1. Discord疎通テスト:
+   - DISCORD_TOKENの有効性を確認
+   - Discord APIへの接続を確認
+   - TARGET_GUILD_IDで指定されたサーバーへのアクセスを確認
+2. Gemini API疎通テスト:
+   - GEMINI_API_KEYの有効性を確認
+   - Gemini APIへの接続を確認
+   - LLMモードが利用可能かを確認
+
+#### 必要な環境変数
+
+- `DISCORD_TOKEN`: Discord Botのトークン（必須）
+- `TARGET_GUILD_ID`: 対象のサーバーID（必須）
+- `GEMINI_API_KEY`: Google Gemini APIキー（オプション）
+
+#### メリット
+
+- APIキーの設定ミスを早期に発見
+- 本番環境での実行前に疎通確認が可能
+- LLMモードの利用可否を事前に確認
+
+#### 注意事項
+
+- GEMINI_API_KEYはオプションです。設定されていない場合でもテストは成功し、標準モード（ペルソナベース）で動作します
+- 詳細情報表示オプションを有効にすると、Bot名やサーバー名がGitHub Actions Step Summaryに表示されます（リポジトリのActions権限を持つユーザーが閲覧可能）
+- Gemini APIのテストでは最小限のトークン数でAPIリクエストを送信します（無料枠への影響を最小化）
+
 ## 使用方法
 
 これらのワークフローは自動的に実行されるため、特別な設定は不要です。
