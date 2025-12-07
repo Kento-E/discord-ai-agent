@@ -17,7 +17,7 @@ from gemini_model_utils import (
 
 
 def test_gemini_api_key():
-    """Gemini APIキーの存在と有効性を確認する"""
+    """Gemini APIキーの存在と有効性を確認する（リトライ機能付き）"""
 
     # 環境変数の取得
     api_key = os.environ.get("GEMINI_API_KEY")
@@ -43,6 +43,12 @@ def test_gemini_api_key():
     try:
         # google-generativeaiライブラリをインポート
         import google.generativeai as genai
+        # エラーハンドラーをインポート
+        from llm_error_handler import (
+            MAX_RETRIES,
+            should_retry_with_backoff,
+            wait_for_retry,
+        )
 
         # APIキーを設定
         genai.configure(api_key=api_key)
@@ -51,26 +57,98 @@ def test_gemini_api_key():
         model_name = get_model_name()
         model = genai.GenerativeModel(model_name)
 
-        # 簡単なテストメッセージを送信
-        print("🧪 テストメッセージを送信しています...")
-        response = model.generate_content(
-            "こんにちは。APIテストです。「OK」とだけ返信してください。",
-            generation_config=genai.types.GenerationConfig(
-                max_output_tokens=10,  # 最小限のトークン数
-                temperature=0.1,  # 決定論的な応答
-            ),
-        )
+        # リトライループ
+        for attempt in range(MAX_RETRIES + 1):
+            try:
+                # 簡単なテストメッセージを送信
+                if attempt == 0:
+                    print("🧪 テストメッセージを送信しています...")
+                else:
+                    print(f"🧪 テストメッセージを送信しています (試行 {attempt + 1}/{MAX_RETRIES + 1})...")
 
-        if response and response.text:
-            print("✅ Gemini API接続成功: API認証完了")
-            print(f"   応答: {response.text.strip()[:50]}")
-            print()
-            print("🎉 Gemini API疎通テストに成功しました！")
-            print("   LLMモードが有効になります")
-            return True
-        else:
-            print("❌ エラー: APIからの応答が空です")
-            return False
+                response = model.generate_content(
+                    "こんにちは。APIテストです。「OK」とだけ返信してください。",
+                    generation_config=genai.types.GenerationConfig(
+                        max_output_tokens=10,  # 最小限のトークン数
+                        temperature=0.1,  # 決定論的な応答
+                    ),
+                )
+
+                if response and response.text:
+                    print("✅ Gemini API接続成功: API認証完了")
+                    print(f"   応答: {response.text.strip()[:50]}")
+                    print()
+                    print("🎉 Gemini API疎通テストに成功しました！")
+                    print("   LLMモードが有効になります")
+                    return True
+                else:
+                    print("❌ エラー: APIからの応答が空です")
+                    return False
+
+            except Exception as e:
+                # 例外を評価し、リトライすべきか判断
+                should_retry, wait_time = should_retry_with_backoff(e, attempt)
+
+                if should_retry:
+                    print(f"   ⏳ {wait_time:.1f}秒後に再試行します...")
+                    wait_for_retry(wait_time)
+                    continue
+                else:
+                    # リトライ不可の場合はエラー処理へ
+                    error_message = str(e)
+                    print("❌ エラー: Gemini APIへの接続に失敗しました")
+                    print(f"   詳細: {error_message}")
+                    print()
+
+                    # エラーメッセージに基づいて詳細なガイダンスを提供
+                    invalid_key = (
+                        "API_KEY_INVALID" in error_message
+                        or "invalid" in error_message.lower()
+                    )
+                    if invalid_key:
+                        print("   原因: APIキーが無効です")
+                        print("   対処: 正しいAPIキーを設定してください")
+                        print()
+                        print("   APIキーの取得方法:")
+                        print("   1. https://aistudio.google.com/ にアクセス")
+                        print("   2. Googleアカウントでログイン")
+                        print("   3. 'Get API Key'をクリック")
+                        print("   4. 新しいAPIキーを作成")
+
+                    elif "quota" in error_message.lower() or "429" in error_message:
+                        print("   原因: APIのレート制限に達しました")
+                        print("   対処: しばらく待ってから再試行してください")
+
+                    elif (
+                        "permission" in error_message.lower()
+                        or "403" in error_message
+                    ):
+                        print("   原因: APIへのアクセス権限がありません")
+                        print("   対処: APIキーの権限を確認してください")
+
+                    elif "not found" in error_message.lower() or "404" in error_message:
+                        print("   原因: 指定されたモデルが見つかりません")
+                        print(f"   使用しようとしたモデル: {model_name}")
+                        print()
+                        print("   ℹ️ 利用可能なモデルを確認しています...")
+                        try:
+                            available_models = list_available_models(genai)
+                            if available_models:
+                                print_available_models(available_models, max_display=5)
+                                print_update_instructions()
+                        except Exception as list_error:
+                            print(f"   ⚠️ モデル一覧の取得に失敗: {list_error}")
+
+                    else:
+                        print("   原因: 予期しないエラーが発生しました")
+                        print("   対処: インターネット接続を確認してください")
+
+                    return False
+
+        # 最大リトライ回数に達した場合
+        print(f"❌ エラー: 最大リトライ回数({MAX_RETRIES}回)に達しました")
+        print("   対処: しばらく時間を置いてから再度実行してください")
+        return False
 
     except ImportError as e:
         print("❌ エラー: google-generativeaiライブラリがインストールされていません")
@@ -78,50 +156,6 @@ def test_gemini_api_key():
         print()
         print("   以下のコマンドでインストールしてください:")
         print("   pip install google-generativeai")
-        return False
-
-    except Exception as e:
-        error_message = str(e)
-        print("❌ エラー: Gemini APIへの接続に失敗しました")
-        print(f"   詳細: {error_message}")
-        print()
-
-        # エラーメッセージに基づいて詳細なガイダンスを提供
-        if "API_KEY_INVALID" in error_message or "invalid" in error_message.lower():
-            print("   原因: APIキーが無効です")
-            print("   対処: 正しいAPIキーを設定してください")
-            print()
-            print("   APIキーの取得方法:")
-            print("   1. https://aistudio.google.com/ にアクセス")
-            print("   2. Googleアカウントでログイン")
-            print("   3. 'Get API Key'をクリック")
-            print("   4. 新しいAPIキーを作成")
-
-        elif "quota" in error_message.lower() or "429" in error_message:
-            print("   原因: APIのレート制限に達しました")
-            print("   対処: しばらく待ってから再試行してください")
-
-        elif "permission" in error_message.lower() or "403" in error_message:
-            print("   原因: APIへのアクセス権限がありません")
-            print("   対処: APIキーの権限を確認してください")
-
-        elif "not found" in error_message.lower() or "404" in error_message:
-            print("   原因: 指定されたモデルが見つかりません")
-            print(f"   使用しようとしたモデル: {model_name}")
-            print()
-            print("   ℹ️ 利用可能なモデルを確認しています...")
-            try:
-                available_models = list_available_models(genai)
-                if available_models:
-                    print_available_models(available_models, max_display=5)
-                    print_update_instructions()
-            except Exception as list_error:
-                print(f"   ⚠️ モデル一覧の取得に失敗: {list_error}")
-
-        else:
-            print("   原因: 予期しないエラーが発生しました")
-            print("   対処: インターネット接続を確認してください")
-
         return False
 
 
