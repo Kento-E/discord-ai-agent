@@ -64,9 +64,9 @@ Discord BotとGemini APIの認証情報（Secrets）の疎通を確認するワ�
 
 詳細な動作、環境変数、注意事項については [docs/WORKFLOWS.md](../../docs/WORKFLOWS.md#secrets疎通テスト) を参照してください。
 
-**トリガー**: `workflow_dispatch`（手動実行のみ）  
+**トリガー**: `workflow_dispatch`（手動実行）、`push`（main、対象ファイル変更時）  
 **権限**: `contents: read`  
-**注**: Gemini APIの無料枠保護のため、自動実行は無効化されています。
+**注**: Gemini APIテストは手動実行時のみオプションで有効化可能（無料枠保護のため）。
 
 ## 詳細情報
 
