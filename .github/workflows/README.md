@@ -203,13 +203,11 @@ Discord BotとGemini APIの認証情報（Secrets）の疎通を確認するワ�
 
 #### トリガー条件
 
-- 手動実行（`workflow_dispatch`）
+- 手動実行のみ（`workflow_dispatch`）
   - テストを実行する理由（任意）
   - 詳細情報を表示するかどうか（任意）
-- mainブランチへのpush（対象ファイルが変更された場合のみ）
-  - `.github/workflows/test-secrets.yml`
-  - `src/test_connection.py`
-  - `src/test_gemini_connection.py`
+
+**注**: Gemini APIの無料枠を保護するため、自動実行は無効化されています。
 
 #### 動作
 
