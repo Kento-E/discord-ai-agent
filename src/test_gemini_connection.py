@@ -111,7 +111,6 @@ def test_gemini_api_key():
             print("   ℹ️ 利用可能なモデルを確認しています...")
             try:
                 available_models = list_available_models(genai)
-                
                 if available_models:
                     print_available_models(available_models, max_display=5)
                     print_update_instructions()
