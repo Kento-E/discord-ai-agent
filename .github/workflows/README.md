@@ -15,306 +15,59 @@
 
 ### 2. 知識データの生成と保存 (`generate-knowledge-data.yml`)
 
-#### 概要
+Discordサーバーからメッセージを取得し、AI学習用の埋め込みデータを生成して暗号化するワークフローです。
 
-Discordサーバーからメッセージを取得し、AI学習用の埋め込みデータを生成して暗号化するワークフローです。生成されたデータは、GitHub Actionsのアーティファクトとして保存され、さらに「知識データのRelease自動アップロード」ワークフローによってReleaseとして公開されます。
+詳細な動作、実行時間、環境変数については [docs/WORKFLOWS.md](../../docs/WORKFLOWS.md#知識データの生成と保存) を参照してください。
 
-#### トリガー条件
-
-- 手動実行（`workflow_dispatch`）
-- 定期実行（スケジュール設定は[ワークフローファイル](generate-knowledge-data.yml)を参照）
-
-#### 動作
-
-1. Discordサーバーからメッセージを取得
-2. AI学習用の埋め込みデータを生成
-3. データを暗号化（AES-256-CBC）
-4. アーティファクトとして保存（保持期間: 90日）
-
-#### 実行時間
-
-- タイムアウト設定: 60分（[ワークフローファイル](generate-knowledge-data.yml)を参照）
-- 想定実行時間: 30〜40分（データ量により変動）
-  - メッセージ取得: 約12分
-  - 埋め込みデータ生成: 約13分
-  - 暗号化・アップロード: 約5分
-  - その他セットアップ: 約4分
-
-#### 必要な環境変数
-
-- `DISCORD_TOKEN`: Discord Botのトークン
-- `TARGET_GUILD_ID`: 取得対象のサーバーID
-- `EXCLUDED_CHANNELS`: 除外するチャンネルのリスト（任意）
-- `ENCRYPTION_KEY`: 暗号化に使用する鍵
+**トリガー**: `workflow_dispatch`（手動実行）、定期実行  
+**権限**: `contents: read`
 
 ### 3. Discord Botの実行 (`run-discord-bot.yml`)
 
-#### 概要
-
 Discord AIエージェントBotを起動するワークフローです。最新のGitHub Releaseから暗号化された知識データをダウンロードし、復号化してBotを実行します。
 
-#### トリガー条件
+詳細な動作、環境変数、注意事項については [docs/WORKFLOWS.md](../../docs/WORKFLOWS.md#discord-botの実行) を参照してください。
 
-- 手動実行（`workflow_dispatch`）
-  - 実行理由（任意）
-  - 実行時間上限（オプション詳細は[ワークフローファイル](run-discord-bot.yml)を参照）
-
-#### 動作
-
-1. 最新の `knowledge-data-*` タグのReleaseを検索
-2. Release assetから暗号化された知識データをダウンロード
-3. 暗号化データを復号化
-4. Discord Botを起動
-
-#### 必要な環境変数
-
-- `DISCORD_TOKEN`: Discord Botのトークン
-- `TARGET_GUILD_ID`: 対象のサーバーID
-- `ENCRYPTION_KEY`: 復号化に使用する鍵（生成時と同じ鍵）
-
-#### 注意事項
-
-- 実行時間の上限はワークフローの設定で選択可能（[ワークフローファイル](run-discord-bot.yml)を参照）
-- 知識データのReleaseが存在しない場合はエラーになります
-- 「知識データの生成と保存」ワークフローを先に実行してください
+**トリガー**: `workflow_dispatch`（手動実行）  
+**権限**: `contents: read`
 
 ### 4. Auto Merge on Approval (`auto-merge.yml`)
 
-#### 概要
-
 PRが承認されたときに、GitHubの自動マージ機能を有効化するワークフローです。承認とステータスチェックが完了すると、GitHubが自動的にSquash and Mergeを実行します。
 
-#### トリガー条件
+詳細な動作フロー、トラブルシューティングについては [docs/WORKFLOWS.md](../../docs/WORKFLOWS.md#auto-merge-on-approval) を参照してください。
 
-- イベント: `pull_request_review` (submitted)
-- 条件: レビューが"Approved"状態である
-
-#### 動作
-
-1. PR情報を表示（PR番号、ブランチ、レビュアー）
-2. PRがDraft状態でないことを確認
-3. PRのマージ可能状態を確認
-4. GitHub CLIの`gh pr merge --auto`コマンドで自動マージを有効化
-5. ブランチ保護ルールで要求される承認とステータスチェックが完了すると、GitHubが自動的にSquash and Mergeを実行
-6. マージ後、ブランチが自動削除される
-
-#### 必要な権限
-
-- `contents: write` - リポジトリへの書き込み
-- `pull-requests: write` - PRの操作
-
-#### GitHubの自動マージ機能について
-
-このワークフローは、GitHub CLIを使用してGitHubの**ネイティブ自動マージ機能**を有効化します：
-
-- **利点**:
-  - シンプルで読みやすい実装（GitHub CLI使用）
-  - ブランチ保護ルールと完全に互換性がある
-  - 「Copilotとコラボレーションしたユーザー」の制約も正しく処理される
-  - GitHub UIから自動マージのステータスが確認できる
-  
-- **動作フロー**:
-  1. レビュアーがPRを承認する → ワークフローがトリガーされる
-  2. ワークフローが自動マージを有効化（`gh pr merge --auto`）
-  3. すべてのステータスチェックが成功
-  4. → GitHubが自動的にSquash and Mergeを実行
-  5. → ブランチが自動削除される
-
-#### 注意事項
-
-- ブランチ保護ルールで要求される承認とステータスチェックがすべて満たされるまで、マージは実行されません
-- GitHub CLIを使用するため、シンプルで保守しやすい実装です
-- Draft状態のPRは自動マージされません（Ready for reviewに変更してから承認してください）
-- マージコンフリクトがある場合、自動マージは実行されません
+**トリガー**: `pull_request_review` (Approved時)  
+**権限**: `contents: write`, `pull-requests: write`
 
 ### 5. Auto Delete Branch on Merge (`auto-delete-branch.yml`)
 
-#### 概要
+PRがマージされた後、ソースブランチを自動的に削除するワークフローです。`auto-merge.yml`のバックアップとして機能します。
 
-PRがマージされた後、ソースブランチを自動的に削除するワークフローです。
+詳細な動作、注意事項については [docs/WORKFLOWS.md](../../docs/WORKFLOWS.md#auto-delete-branch-on-merge) を参照してください。
 
-**注意**: `auto-merge.yml`ワークフローは既に`--delete-branch`オプションを使用してブランチを削除するため、このワークフローは**バックアップ**として機能します（手動マージされた場合など）。
-
-#### トリガー条件
-
-- イベント: `pull_request` (closed)
-- 条件: PRがマージされた（`merged == true`）
-
-#### 動作
-
-1. マージされたPRのブランチ情報を取得
-2. ソースブランチを削除
-
-#### 必要な権限
-
-- `contents: write` - リポジトリへの書き込み
-
-#### 注意事項
-
-- 保護ブランチは削除されません
-- 既に削除されているブランチの場合、エラーは無視されます（auto-mergeで既に削除されている場合）
-- フォークからのPRの場合、元のリポジトリのブランチは削除されません
-- `auto-merge.yml`で自動マージされた場合、このワークフローは実行されますが、ブランチは既に削除されているため、無害なエラーが表示されます
+**トリガー**: `pull_request` (closed、merged時)  
+**権限**: `contents: write`
 
 ### 6. Update Other PRs After Merge (`update-other-prs.yml`)
 
-#### 概要
+PRがmainブランチにマージされたときに、同じベースブランチを対象とする他のオープンなPRを自動的に更新するワークフローです。
 
-PRがmainブランチにマージされたときに、同じベースブランチを対象とする他のオープンなPRを自動的に更新するワークフローです。複数PRが起票されている場合の手動更新作業を削減できます。
+詳細な動作、メリット、注意事項については [docs/WORKFLOWS.md](../../docs/WORKFLOWS.md#update-other-prs-after-merge) を参照してください。
 
-#### トリガー条件
-
-- イベント: `pull_request` (closed)
-- ブランチ: `main`
-- 条件: PRがマージされた（`merged == true`）
-
-#### 動作
-
-1. マージされたPR情報を表示
-2. 同じベースブランチ（main）を対象とする他のオープンなPRを検索
-3. 各PRに対して：
-   - PRの詳細情報を取得（タイトル、ブランチ、マージ可能性など）
-   - コンフリクトがある場合はスキップ
-   - コンフリクトがない場合はGitHub APIの`update-branch`エンドポイントを使用してブランチを更新
-4. 更新結果のサマリーを表示（成功、スキップ、失敗の件数）
-
-#### 必要な権限
-
-- `contents: write` - リポジトリへの書き込み
-- `pull-requests: write` - PRの操作
-
-#### メリット
-
-- 複数PRが起票されている場合の手動更新作業を削減
-- PRが常に最新のmainブランチと同期された状態を保つ
-- コンフリクトの早期発見
-
-#### 注意事項
-
-- コンフリクトがあるPRは自動的にスキップされます
-- エラーが発生しても処理は継続します（他のPRの更新を妨げない）
-- mainブランチへのPRマージ時のみ動作します
+**トリガー**: `pull_request` (closed、main、merged時)  
+**権限**: `contents: write`, `pull-requests: write`
 
 ### 7. Secrets疎通テスト (`test-secrets.yml`)
 
-#### 概要
-
 Discord BotとGemini APIの認証情報（Secrets）の疎通を確認するワークフローです。DISCORD_TOKEN、TARGET_GUILD_ID、GEMINI_API_KEYの有効性を検証し、APIへの接続を確認します。
 
-#### トリガー条件
+詳細な動作、環境変数、注意事項については [docs/WORKFLOWS.md](../../docs/WORKFLOWS.md#secrets疎通テスト) を参照してください。
 
-- 手動実行のみ（`workflow_dispatch`）
-  - テストを実行する理由（任意）
-  - 詳細情報を表示するかどうか（任意）
+**トリガー**: `workflow_dispatch`（手動実行のみ）  
+**権限**: `contents: read`  
+**注**: Gemini APIの無料枠保護のため、自動実行は無効化されています。
 
-**注**: Gemini APIの無料枠を保護するため、自動実行は無効化されています。
+## 詳細情報
 
-#### 動作
-
-1. Discord疎通テスト:
-   - DISCORD_TOKENの有効性を確認
-   - Discord APIへの接続を確認
-   - TARGET_GUILD_IDで指定されたサーバーへのアクセスを確認
-2. Gemini API疎通テスト:
-   - GEMINI_API_KEYの有効性を確認
-   - Gemini APIへの接続を確認
-   - LLMモードが利用可能かを確認
-
-#### 必要な環境変数
-
-- `DISCORD_TOKEN`: Discord Botのトークン（必須）
-- `TARGET_GUILD_ID`: 対象のサーバーID（必須）
-- `GEMINI_API_KEY`: Google Gemini APIキー（オプション）
-
-#### メリット
-
-- APIキーの設定ミスを早期に発見
-- 本番環境での実行前に疎通確認が可能
-- LLMモードの利用可否を事前に確認
-
-#### 注意事項
-
-- GEMINI_API_KEYはオプションです。設定されていない場合でもテストは成功し、標準モード（ペルソナベース）で動作します
-- 詳細情報表示オプションを有効にすると、Bot名やサーバー名がGitHub Actions Step Summaryに表示されます（リポジトリのActions権限を持つユーザーが閲覧可能）
-- Gemini APIのテストでは最小限のトークン数でAPIリクエストを送信します（無料枠への影響を最小化）
-
-## 使用方法
-
-これらのワークフローは自動的に実行されるため、特別な設定は不要です。
-
-### 自動マージを無効にしたい場合
-
-1. `.github/workflows/auto-merge.yml` を削除または無効化
-2. または、PRにラベルを追加してスキップする条件を追加
-
-### 自動ブランチ削除を無効にしたい場合
-
-1. `.github/workflows/auto-delete-branch.yml` を削除または無効化
-2. または、リポジトリ設定で「Automatically delete head branches」を有効化
-
-## トラブルシューティング
-
-### ワークフローが実行されない
-
-- GitHub Actionsが有効になっているか確認
-- リポジトリの権限設定を確認
-- ワークフローファイルの構文エラーを確認
-
-### 自動マージが実行されない
-
-**自動マージ機能が有効化されているのにマージされない場合:**
-
-考えられる原因と確認項目:
-
-1. **承認の不足**
-   - ブランチ保護ルールで要求される承認数が満たされていない
-   - PR画面の「Reviewers」セクションを確認
-   - GitHub Copilot等のBotとコラボレーションしたユーザーによる承認は無効になる場合があります
-
-2. **ステータスチェックの未完了**
-   - 必要なステータスチェックが成功していない
-   - PR画面の「Checks」タブを確認
-   - すべての必須チェックが緑色（成功）になっている必要があります
-
-3. **マージコンフリクト**
-   - ベースブランチとコンフリクトがある
-   - PR画面に「This branch has conflicts」と表示される
-   - コンフリクトを解決する必要があります
-
-4. **ブランチ保護ルールの制約**
-   - リポジトリ設定: `Settings > Branches > Branch protection rules`
-   - 「Require approvals」の設定を確認
-   - 「Require status checks to pass」の設定を確認
-
-**GitHubの自動マージ機能について:**
-
-- PR画面で「Enable auto-merge」ボタンが表示されている場合、そのボタンをクリックして手動で有効化することもできます
-- 自動マージが有効化されると、PR画面に「This pull request will auto-merge」と表示されます
-
-### ブランチが削除されない
-
-- ブランチが保護されていないか確認
-- ワークフローの実行ログを確認
-- リポジトリの権限設定を確認
-
-## カスタマイズ
-
-### 承認数の変更
-
-`auto-merge.yml` の以下の行を変更：
-
-```yaml
-if: fromJSON(steps.check_approvals.outputs.result) >= 1
-```
-
-例: 2件以上の承認が必要な場合は `>= 2` に変更
-
-### マージ方法の変更
-
-`auto-merge.yml` の以下の行を変更：
-
-```yaml
-merge_method: 'squash'
-```
-
-選択肢: `squash`, `merge`, `rebase`
+各ワークフローの詳細な仕様、トラブルシューティング、カスタマイズ方法については [docs/WORKFLOWS.md](../../docs/WORKFLOWS.md) を参照してください。
