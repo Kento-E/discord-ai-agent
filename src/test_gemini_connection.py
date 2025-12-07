@@ -8,6 +8,12 @@ GEMINI_API_KEYの有効性を検証します。
 import os
 import sys
 
+from gemini_model_utils import (
+    list_available_models,
+    print_available_models,
+    print_update_instructions,
+)
+
 
 def test_gemini_api_key():
     """Gemini APIキーの存在と有効性を確認する"""
@@ -104,22 +110,11 @@ def test_gemini_api_key():
             print()
             print("   ℹ️ 利用可能なモデルを確認しています...")
             try:
-                available_models = []
-                for model in genai.list_models():
-                    if "generateContent" in model.supported_generation_methods:
-                        available_models.append(model.name)
+                available_models = list_available_models(genai)
                 
                 if available_models:
-                    print("   📋 現在利用可能なモデル:")
-                    for model in available_models[:5]:  # 最初の5つを表示
-                        # models/プレフィックスを除去して表示
-                        model_display = model.replace("models/", "")
-                        print(f"      - {model_display}")
-                    if len(available_models) > 5:
-                        print(f"      ... 他 {len(available_models) - 5} モデル")
-                    print()
-                    print("   🔧 対処: src/test_gemini_connection.py と src/ai_agent.py の")
-                    print("           モデル名を上記のいずれかに更新してください")
+                    print_available_models(available_models, max_display=5)
+                    print_update_instructions()
             except Exception as list_error:
                 print(f"   ⚠️ モデル一覧の取得に失敗: {list_error}")
 

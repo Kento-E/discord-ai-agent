@@ -9,6 +9,12 @@ list_models() APIを使用するため、無料枠を消費しません。
 import os
 import sys
 
+from gemini_model_utils import (
+    list_available_models,
+    print_available_models,
+    print_update_instructions,
+)
+
 
 def validate_model(model_name="gemini-2.0-flash"):
     """
@@ -37,10 +43,7 @@ def validate_model(model_name="gemini-2.0-flash"):
         print(f"🔍 モデルの有効性を確認中: {model_name}")
 
         # 利用可能なモデルを取得（無料枠を消費しない）
-        available_models = []
-        for model in genai.list_models():
-            if "generateContent" in model.supported_generation_methods:
-                available_models.append(model.name)
+        available_models = list_available_models(genai)
 
         # models/ プレフィックスを考慮してチェック
         full_model_name = f"models/{model_name}" if not model_name.startswith("models/") else model_name
@@ -52,18 +55,8 @@ def validate_model(model_name="gemini-2.0-flash"):
         else:
             print(f"⚠️  警告: モデルが見つかりません: {simple_model_name}")
             print()
-            print("📋 現在利用可能なモデル:")
-            for model in available_models[:10]:
-                model_display = model.replace("models/", "")
-                print(f"   - {model_display}")
-            if len(available_models) > 10:
-                print(f"   ... 他 {len(available_models) - 10} モデル")
-            print()
-            print("🔧 対処が必要:")
-            print("   以下のファイルでモデル名を更新してください:")
-            print("   - src/test_gemini_connection.py")
-            print("   - src/ai_agent.py")
-            print("   - src/validate_gemini_model.py (このファイル)")
+            print_available_models(available_models, max_display=10)
+            print_update_instructions()
             return False
 
     except ImportError:
@@ -102,5 +95,5 @@ def main():
 
 if __name__ == "__main__":
     success = main()
-    # モデルが無効でも終了コード0（警告だが、Bot起動は継続可能）
-    sys.exit(0 if success else 0)
+    # モデルが無効な場合は終了コード1（警告を表示するが、Bot起動は継続）
+    sys.exit(0 if success else 1)
