@@ -136,6 +136,20 @@ jobs:
             echo "✅ 知識データが利用可能です"
           fi
 
+      - name: Gemini APIモデルの有効性を確認
+        id: validate-model
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          echo ""
+          if ! python src/validate_gemini_model.py; then
+            echo "::warning::⚠️ Gemini APIモデルの更新が必要です。詳細はログを確認してください。"
+            echo "model_outdated=true" >> $GITHUB_OUTPUT
+          else
+            echo "model_outdated=false" >> $GITHUB_OUTPUT
+          fi
+          echo ""
+
       - name: Discord Botを起動
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
@@ -188,6 +202,18 @@ jobs:
             echo "   - GUILDS INTENT" >> $GITHUB_STEP_SUMMARY
           fi
           echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Gemini APIモデル検証結果を追加
+          if [ "${{ steps.validate-model.outputs.model_outdated }}" == "true" ]; then
+            echo "### ⚠️ 重要な警告" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Gemini APIモデルの更新が必要です**" >> $GITHUB_STEP_SUMMARY
+            echo "- 現在のモデルが利用できない可能性があります" >> $GITHUB_STEP_SUMMARY
+            echo "- LLMモードが正常に動作しない可能性があります" >> $GITHUB_STEP_SUMMARY
+            echo "- 詳細は上記のログ「Gemini APIモデルの有効性を確認」を参照してください" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
           echo "---" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📝 実行情報" >> $GITHUB_STEP_SUMMARY
@@ -196,3 +222,6 @@ jobs:
           echo "- **デバッグモード**: ${{ github.event.inputs.debug_mode == 'true' && '有効' || '無効' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **実行者**: @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
           echo "- **実行日時**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.validate-model.outputs.model_outdated }}" == "true" ]; then
+            echo "- **⚠️ Geminiモデル**: 更新が必要" >> $GITHUB_STEP_SUMMARY
+          fi

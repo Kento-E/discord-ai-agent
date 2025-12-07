@@ -8,6 +8,12 @@ GEMINI_API_KEYの有効性を検証します。
 import os
 import sys
 
+from gemini_model_utils import (
+    list_available_models,
+    print_available_models,
+    print_update_instructions,
+)
+
 
 def test_gemini_api_key():
     """Gemini APIキーの存在と有効性を確認する"""
@@ -40,8 +46,9 @@ def test_gemini_api_key():
         # APIキーを設定
         genai.configure(api_key=api_key)
 
-        # モデルを初期化（軽量なgemini-1.5-flashを使用）
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        # モデルを初期化
+        model_name = "gemini-2.0-flash"
+        model = genai.GenerativeModel(model_name)
 
         # 簡単なテストメッセージを送信
         print("🧪 テストメッセージを送信しています...")
@@ -96,6 +103,19 @@ def test_gemini_api_key():
         elif "permission" in error_message.lower() or "403" in error_message:
             print("   原因: APIへのアクセス権限がありません")
             print("   対処: APIキーの権限を確認してください")
+
+        elif "not found" in error_message.lower() or "404" in error_message:
+            print("   原因: 指定されたモデルが見つかりません")
+            print(f"   使用しようとしたモデル: {model_name}")
+            print()
+            print("   ℹ️ 利用可能なモデルを確認しています...")
+            try:
+                available_models = list_available_models(genai)
+                if available_models:
+                    print_available_models(available_models, max_display=5)
+                    print_update_instructions()
+            except Exception as list_error:
+                print(f"   ⚠️ モデル一覧の取得に失敗: {list_error}")
 
         else:
             print("   原因: 予期しないエラーが発生しました")
