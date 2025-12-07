@@ -24,8 +24,13 @@ def get_model_name():
     """
     設定ファイルからGemini APIモデル名を取得する
     
+    設定ファイル（config/gemini_model.yaml）が存在し読み込める場合は
+    そこからモデル名を取得します。ファイルが見つからない、または
+    YAML解析エラーが発生した場合は、デフォルト値（DEFAULT_MODEL_NAME）を返します。
+    
     Returns:
         str: モデル名（例: "gemini-2.0-flash-lite"）
+             設定ファイルから取得できない場合はDEFAULT_MODEL_NAME
     """
     try:
         with open(CONFIG_PATH, "r", encoding="utf-8") as f:
@@ -34,8 +39,10 @@ def get_model_name():
     except FileNotFoundError:
         # 設定ファイルが見つからない場合はデフォルト値を返す
         return DEFAULT_MODEL_NAME
-    except Exception:
-        # その他のエラーの場合もデフォルト値を返す
+    except (yaml.YAMLError, PermissionError) as e:
+        # YAML解析エラーまたは権限エラーの場合はデフォルト値を返す
+        print(f"⚠️ 設定ファイルの読み込みに失敗: {e}")
+        print(f"   デフォルトモデルを使用: {DEFAULT_MODEL_NAME}")
         return DEFAULT_MODEL_NAME
 
 

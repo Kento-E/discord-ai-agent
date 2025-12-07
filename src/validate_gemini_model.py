@@ -22,7 +22,8 @@ def validate_model(model_name=None):
     指定されたモデルが利用可能か確認する
 
     Args:
-        model_name: 検証するモデル名（Noneの場合は設定ファイルから取得）
+        model_name: 検証するモデル名（Noneの場合はconfig/gemini_model.yamlから取得、
+                   設定ファイルが読み込めない場合はデフォルト値を使用）
 
     Returns:
         bool: モデルが利用可能な場合True
