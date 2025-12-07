@@ -31,7 +31,6 @@ def validate_model(model_name=None):
     # モデル名が指定されていない場合は設定ファイルから取得
     if model_name is None:
         model_name = GEMINI_MODEL_NAME
-    
     api_key = os.environ.get("GEMINI_API_KEY")
 
     # APIキーが設定されていない場合はスキップ
