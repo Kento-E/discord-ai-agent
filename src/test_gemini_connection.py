@@ -41,7 +41,8 @@ def test_gemini_api_key():
         genai.configure(api_key=api_key)
 
         # モデルを初期化
-        model = genai.GenerativeModel("gemini-2.0-flash")
+        model_name = "gemini-2.0-flash"
+        model = genai.GenerativeModel(model_name)
 
         # 簡単なテストメッセージを送信
         print("🧪 テストメッセージを送信しています...")
@@ -96,6 +97,31 @@ def test_gemini_api_key():
         elif "permission" in error_message.lower() or "403" in error_message:
             print("   原因: APIへのアクセス権限がありません")
             print("   対処: APIキーの権限を確認してください")
+
+        elif "not found" in error_message.lower() or "404" in error_message:
+            print("   原因: 指定されたモデルが見つかりません")
+            print(f"   使用しようとしたモデル: {model_name}")
+            print()
+            print("   ℹ️ 利用可能なモデルを確認しています...")
+            try:
+                available_models = []
+                for model in genai.list_models():
+                    if "generateContent" in model.supported_generation_methods:
+                        available_models.append(model.name)
+                
+                if available_models:
+                    print("   📋 現在利用可能なモデル:")
+                    for model in available_models[:5]:  # 最初の5つを表示
+                        # models/プレフィックスを除去して表示
+                        model_display = model.replace("models/", "")
+                        print(f"      - {model_display}")
+                    if len(available_models) > 5:
+                        print(f"      ... 他 {len(available_models) - 5} モデル")
+                    print()
+                    print("   🔧 対処: src/test_gemini_connection.py と src/ai_agent.py の")
+                    print("           モデル名を上記のいずれかに更新してください")
+            except Exception as list_error:
+                print(f"   ⚠️ モデル一覧の取得に失敗: {list_error}")
 
         else:
             print("   原因: 予期しないエラーが発生しました")
