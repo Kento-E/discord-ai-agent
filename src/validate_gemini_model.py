@@ -76,7 +76,7 @@ def main():
     print("Gemini APIモデル有効性検証")
     print("=" * 60 + "\n")
 
-    # src/ai_agent.py と src/test_gemini_connection.py で使用されているモデル名
+    # 現在使用されているモデル名
     model_name = "gemini-2.0-flash"
 
     result = validate_model(model_name)
