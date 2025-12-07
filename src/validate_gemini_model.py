@@ -9,7 +9,7 @@ list_models() APIを使用するため、無料枠を消費しません。
 import os
 import sys
 
-from gemini_config import GEMINI_MODEL_NAME
+from gemini_config import get_model_name
 from gemini_model_utils import (
     list_available_models,
     print_available_models,
@@ -30,7 +30,8 @@ def validate_model(model_name=None):
     """
     # モデル名が指定されていない場合は設定ファイルから取得
     if model_name is None:
-        model_name = GEMINI_MODEL_NAME
+        model_name = get_model_name()
+    
     api_key = os.environ.get("GEMINI_API_KEY")
 
     # APIキーが設定されていない場合はスキップ
