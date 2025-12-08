@@ -11,7 +11,7 @@ import yaml
 
 
 # デフォルトのモデル名（設定ファイルが読み込めない場合のフォールバック）
-DEFAULT_MODEL_NAME = "gemini-2.0-flash-lite"
+DEFAULT_MODEL_NAME = "gemini-2.5-flash-lite"
 
 # 設定ファイルのパス
 CONFIG_PATH = os.path.join(
@@ -36,7 +36,7 @@ def get_model_name():
     YAML解析エラーが発生した場合は、デフォルト値（DEFAULT_MODEL_NAME）を返します。
     
     Returns:
-        str: モデル名（例: "gemini-2.0-flash-lite"）
+        str: モデル名（例: "gemini-2.5-flash-lite"）
              設定ファイルから取得できない場合はDEFAULT_MODEL_NAME
     """
     global _cached_model_name
