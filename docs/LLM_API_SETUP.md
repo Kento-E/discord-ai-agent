@@ -88,7 +88,7 @@ LLM APIを使用している場合、より詳細で自然な応答が返され�
 
 ## モデル設定のカスタマイズ
 
-使用するGemini APIモデルは `config/gemini_model.yaml` で変更できます。設定ファイルの詳細は `config/gemini_model.yaml` 内のコメントを参照してください。
+使用するGemini APIモデルは `config/gemini_model.yaml` で変更できます。利用可能なモデルの一覧は [Gemini API Models](https://ai.google.dev/gemini-api/docs/models/gemini) を参照してください。
 
 モデルを変更する場合は、必ず [Gemini API Pricing](https://ai.google.dev/pricing) で料金と制限を確認してください。
 
