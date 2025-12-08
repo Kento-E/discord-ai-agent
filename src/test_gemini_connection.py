@@ -155,11 +155,6 @@ def test_gemini_api_key():
 
                     return False
 
-        # 最大リトライ回数に達した場合
-        print(f"❌ エラー: 最大リトライ回数({MAX_RETRIES}回)に達しました")
-        print("   対処: しばらく時間を置いてから再度実行してください")
-        return False
-
     except ImportError as e:
         print("❌ エラー: google-generativeaiライブラリがインストールされていません")
         print(f"   詳細: {e}")
