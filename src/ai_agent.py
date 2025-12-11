@@ -166,27 +166,30 @@ def _load_prompts():
 
     Returns:
         dict: プロンプト設定
+
+    Raises:
+        FileNotFoundError: prompts.yamlが存在しない場合
+        RuntimeError: YAML構文エラーがある場合
     """
     global _prompts
     if _prompts is None:
         prompts_path = os.path.abspath(PROMPTS_PATH)
-        if os.path.exists(prompts_path):
-            import yaml
+        if not os.path.exists(prompts_path):
+            raise FileNotFoundError(
+                f"プロンプト設定ファイルが見つかりません: {prompts_path}\n"
+                "config/prompts.yamlを配置してください。"
+            )
 
+        import yaml
+
+        try:
             with open(prompts_path, "r", encoding="utf-8") as f:
                 _prompts = yaml.safe_load(f)
-        else:
-            # デフォルト値
-            _prompts = {
-                "llm_system_prompt": "あなたは過去のDiscordメッセージから学習した"
-                "AIアシスタントです。\n以下の過去メッセージを参考に、"
-                "ユーザーの質問に自然な日本語で回答してください。",
-                "llm_response_instruction": "過去メッセージのスタイルを参考にしつつ、"
-                "自然で簡潔な回答を生成してください。",
-                "llm_context_header": "【過去メッセージ】",
-                "llm_query_header": "【ユーザーの質問】",
-                "llm_response_header": "【回答】",
-            }
+        except yaml.YAMLError as e:
+            raise RuntimeError(
+                f"プロンプト設定ファイル（{prompts_path}）のYAML構文に誤りがあります。\n"
+                f"エラー内容: {e}"
+            ) from e
     return _prompts
 
 
