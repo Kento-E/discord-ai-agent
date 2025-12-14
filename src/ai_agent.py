@@ -230,9 +230,21 @@ def generate_response_with_llm(query, similar_messages):
     # APIの設定
     genai.configure(api_key=api_key)
 
+    # 安全性フィルター設定（クローズドサーバー向けに緩和）
+    HarmCategory = genai.types.HarmCategory
+    HarmBlockThreshold = genai.types.HarmBlockThreshold
+    safety_settings = {
+        HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: (HarmBlockThreshold.BLOCK_NONE),
+        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: (HarmBlockThreshold.BLOCK_NONE),
+    }
+
     # モデルのインスタンスをキャッシュして再利用（パフォーマンス向上）
     if _gemini_model is None:
-        _gemini_model = genai.GenerativeModel(get_model_name())
+        _gemini_model = genai.GenerativeModel(
+            get_model_name(), safety_settings=safety_settings
+        )
 
     # 文脈として過去メッセージを整形
     context = "\n".join([f"- {msg}" for msg in similar_messages[:5]])
@@ -266,6 +278,7 @@ def generate_response_with_llm(query, similar_messages):
                     temperature=0.7,
                     max_output_tokens=500,
                 ),
+                safety_settings=safety_settings,
                 request_options={"timeout": 30},
             )
 

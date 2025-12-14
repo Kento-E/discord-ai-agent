@@ -49,7 +49,22 @@ def test_gemini_api_key():
 
         # モデルを初期化（設定ファイルから取得）
         model_name = get_model_name()
-        model = genai.GenerativeModel(model_name)
+
+        # 安全性フィルター設定（クローズドサーバー向けに緩和）
+        HarmCategory = genai.types.HarmCategory
+        HarmBlockThreshold = genai.types.HarmBlockThreshold
+        safety_settings = {
+            HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: (
+                HarmBlockThreshold.BLOCK_NONE
+            ),
+            HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: (
+                HarmBlockThreshold.BLOCK_NONE
+            ),
+        }
+
+        model = genai.GenerativeModel(model_name, safety_settings=safety_settings)
 
         # 簡単なテストメッセージを送信
         print("🧪 テストメッセージを送信しています...")
@@ -59,6 +74,7 @@ def test_gemini_api_key():
                 max_output_tokens=10,  # 最小限のトークン数
                 temperature=0.1,  # 決定論的な応答
             ),
+            safety_settings=safety_settings,
         )
 
         if response and response.text:
