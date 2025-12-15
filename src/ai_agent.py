@@ -208,7 +208,7 @@ def generate_response_with_llm(query, similar_messages):
             - response: LLMが生成した応答文字列、またはNone（エラー時）
             - error_message: エラーメッセージ、またはNone（成功時）
     """
-    global _gemini_model
+    global _gemini_model, _gemini_module, _safety_settings
 
     # エラーハンドラーを遅延インポート
     from llm_error_handler import (
@@ -227,7 +227,6 @@ def generate_response_with_llm(query, similar_messages):
         return None, None
 
     # モデルのインスタンスをキャッシュして再利用（パフォーマンス向上）
-    global _gemini_module, _safety_settings
     if _gemini_model is None:
         # Gemini APIモデルを作成
         _gemini_module, _gemini_model, _safety_settings = create_generative_model(
