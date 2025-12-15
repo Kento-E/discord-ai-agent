@@ -18,7 +18,7 @@ import json
 import os
 import threading
 
-from gemini_config import get_model_name
+from gemini_config import create_generative_model
 
 EMBED_PATH = os.path.join(os.path.dirname(__file__), "../data/embeddings.json")
 PROMPTS_PATH = os.path.join(os.path.dirname(__file__), "../config/prompts.yaml")
@@ -29,6 +29,8 @@ _texts = None
 _embeddings = None
 _prompts = None
 _gemini_model = None  # Gemini APIモデルのキャッシュ
+_gemini_module = None  # genaiモジュールのキャッシュ
+_safety_settings = None  # 安全性設定のキャッシュ
 _llm_first_success = False  # LLM初回成功フラグ
 _initialized = False
 _init_lock = threading.Lock()
@@ -206,7 +208,7 @@ def generate_response_with_llm(query, similar_messages):
             - response: LLMが生成した応答文字列、またはNone（エラー時）
             - error_message: エラーメッセージ、またはNone（成功時）
     """
-    global _gemini_model
+    global _gemini_model, _gemini_module, _safety_settings
 
     # エラーハンドラーを遅延インポート
     from llm_error_handler import (
@@ -224,15 +226,16 @@ def generate_response_with_llm(query, similar_messages):
         # (起動時に既に案内済み)
         return None, None
 
-    # google.generativeaiを遅延インポート（API使用時のみ）
-    import google.generativeai as genai
-
-    # APIの設定
-    genai.configure(api_key=api_key)
-
     # モデルのインスタンスをキャッシュして再利用（パフォーマンス向上）
     if _gemini_model is None:
-        _gemini_model = genai.GenerativeModel(get_model_name())
+        # Gemini APIモデルを作成
+        _gemini_module, _gemini_model, _safety_settings = create_generative_model(
+            api_key
+        )
+
+    # キャッシュから取得
+    genai = _gemini_module
+    safety_settings = _safety_settings
 
     # 文脈として過去メッセージを整形
     context = "\n".join([f"- {msg}" for msg in similar_messages[:5]])
@@ -266,6 +269,7 @@ def generate_response_with_llm(query, similar_messages):
                     temperature=0.7,
                     max_output_tokens=500,
                 ),
+                safety_settings=safety_settings,
                 request_options={"timeout": 30},
             )
 
