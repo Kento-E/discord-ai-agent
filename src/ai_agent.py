@@ -28,6 +28,7 @@ _model = None
 _texts = None
 _embeddings = None
 _prompts = None
+_cached_additional_role = None  # キャッシュされた追加役割の値
 _gemini_model = None  # Gemini APIモデルのキャッシュ
 _gemini_module = None  # genaiモジュールのキャッシュ
 _safety_settings = None  # 安全性設定のキャッシュ
@@ -166,6 +167,13 @@ def _load_prompts():
     """
     プロンプト設定をファイルから読み込む（キャッシュあり）
 
+    環境変数 ADDITIONAL_AGENT_ROLE が設定されている場合、
+    その内容をシステムプロンプトに追加します。
+    ただし、環境変数が空文字列または空白のみの場合は無視されます。
+
+    環境変数が変更された場合、キャッシュは自動的に無効化され、
+    新しい値が反映されます。
+
     Returns:
         dict: プロンプト設定
 
@@ -173,7 +181,16 @@ def _load_prompts():
         FileNotFoundError: prompts.yamlが存在しない場合
         RuntimeError: YAML構文エラーがある場合
     """
-    global _prompts
+    global _prompts, _cached_additional_role
+
+    # 環境変数の現在の値を取得
+    current_additional_role = os.environ.get("ADDITIONAL_AGENT_ROLE", "").strip()
+
+    # 環境変数が変更された場合はキャッシュを無効化
+    if _prompts is not None and _cached_additional_role != current_additional_role:
+        _prompts = None
+        print("🔄 追加の役割設定が変更されました。プロンプトを再読み込みします")
+
     if _prompts is None:
         prompts_path = os.path.abspath(PROMPTS_PATH)
         if not os.path.exists(prompts_path):
@@ -192,6 +209,19 @@ def _load_prompts():
                 f"プロンプト設定ファイル（{prompts_path}）のYAML構文に誤りがあります。\n"
                 f"エラー内容: {e}"
             ) from e
+
+        # 環境変数から追加の役割指定を読み込む
+        if current_additional_role and _prompts:
+            # システムプロンプトに追加の役割を統合
+            if "llm_system_prompt" in _prompts:
+                _prompts["llm_system_prompt"] = (
+                    f"{_prompts['llm_system_prompt']}\n\n"
+                    f"【追加の役割・性格】\n{current_additional_role}"
+                )
+                print("✅ 追加の役割設定が適用されました")
+
+        # 現在の環境変数の値をキャッシュに保存
+        _cached_additional_role = current_additional_role
     return _prompts
 
 
