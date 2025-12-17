@@ -124,7 +124,7 @@ async def on_message(message):
                     if loading_msg:
                         await loading_msg.delete()
 
-                # メッセージを分割して送信（Discord 2000文字制限対応）
+                # メッセージを分割して送信
                 message_chunks = split_message(response)
                 for chunk in message_chunks:
                     await message.channel.send(chunk)
