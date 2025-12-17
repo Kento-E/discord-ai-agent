@@ -100,6 +100,32 @@ def test_period_split():
     return True
 
 
+def test_multiple_punctuation():
+    """複数の句点が混在する場合、最も右側の句点で分割されることを確認"""
+    print("\n=== test_multiple_punctuation ===")
+    # 最大長以内に複数の句点が存在する場合
+    # 「。」「！」「？」の中で最も右側にあるもので分割されるはず
+    sentence1 = "あ" * 1400 + "。"  # 1401文字
+    sentence2 = "い" * 100 + "！"  # 101文字
+    sentence3 = "う" * 100 + "？"  # 101文字
+    sentence4 = "え" * 500  # 500文字
+    message = sentence1 + sentence2 + sentence3 + sentence4  # 合計2103文字
+
+    result = split_message(message)
+
+    assert len(result) >= 2, f"Expected at least 2 chunks, got {len(result)}"
+    assert all(len(chunk) <= DISCORD_MAX_LENGTH for chunk in result)
+    # 最初のチャンクは最も右側の句点（？）で終わるはず
+    assert result[0].endswith(
+        "？"
+    ), "First chunk should end with the rightmost punctuation (？)"
+    print(f"✓ 複数の句点を含むメッセージが{len(result)}つのチャンクに分割される")
+    print("  最初のチャンクは最も右側の句点（？）で終わる")
+    for i, chunk in enumerate(result, 1):
+        print(f"  チャンク{i}: {len(chunk)}文字")
+    return True
+
+
 def test_very_long_message():
     """非常に長いメッセージ（5000文字）の分割を確認"""
     print("\n=== test_very_long_message ===")
@@ -142,6 +168,7 @@ def main():
         ("2000文字超過", test_long_message_split),
         ("改行での分割", test_newline_split),
         ("句点での分割", test_period_split),
+        ("複数の句点での分割", test_multiple_punctuation),
         ("非常に長いメッセージ", test_very_long_message),
         ("カスタム最大長", test_custom_max_length),
     ]
