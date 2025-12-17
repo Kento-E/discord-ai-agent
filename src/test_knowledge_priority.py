@@ -7,6 +7,14 @@
 """
 import os
 import sys
+import traceback
+
+
+def _setup_path():
+    """テスト用のパスセットアップ"""
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    if script_dir not in sys.path:
+        sys.path.insert(0, script_dir)
 
 
 def test_prompt_contains_priority_instructions():
@@ -17,7 +25,7 @@ def test_prompt_contains_priority_instructions():
 
     try:
         # プロンプト設定を読み込み
-        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        _setup_path()
         from ai_agent import _load_prompts
 
         prompts = _load_prompts()
@@ -78,8 +86,6 @@ def test_prompt_contains_priority_instructions():
 
     except Exception as e:
         print(f"❌ エラーが発生しました: {e}")
-        import traceback
-
         traceback.print_exc()
         return False
 
@@ -91,7 +97,7 @@ def test_prompt_structure():
     print("\n=== プロンプト構造テスト ===\n")
 
     try:
-        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        _setup_path()
         from ai_agent import _load_prompts
 
         prompts = _load_prompts()
@@ -122,8 +128,6 @@ def test_prompt_structure():
 
     except Exception as e:
         print(f"❌ エラーが発生しました: {e}")
-        import traceback
-
         traceback.print_exc()
         return False
 
