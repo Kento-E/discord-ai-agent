@@ -3,6 +3,8 @@ import os
 import discord
 from discord import app_commands
 
+from message_splitter import split_message
+
 EMBED_PATH = os.path.join(os.path.dirname(__file__), "../data/embeddings.json")
 
 # 環境変数から機密情報を読み取る
@@ -123,19 +125,23 @@ async def on_message(message):
                         await loading_msg.delete()
 
                 # メッセージを分割して送信（Discord 2000文字制限対応）
-                from message_splitter import split_message
-
                 message_chunks = split_message(response)
                 for chunk in message_chunks:
                     await message.channel.send(chunk)
             except ValueError as e:
                 # APIキー未設定または類似メッセージ未検出
-                await message.channel.send(f"⚠️ 設定エラー: {str(e)}")
+                error_chunks = split_message(f"⚠️ 設定エラー: {str(e)}")
+                for chunk in error_chunks:
+                    await message.channel.send(chunk)
             except RuntimeError as e:
                 # LLM API応答取得失敗
-                await message.channel.send(f"⚠️ APIエラー: {str(e)}")
+                error_chunks = split_message(f"⚠️ APIエラー: {str(e)}")
+                for chunk in error_chunks:
+                    await message.channel.send(chunk)
             except Exception as e:
-                await message.channel.send(f"⚠️ エラーが発生しました: {str(e)}")
+                error_chunks = split_message(f"⚠️ エラーが発生しました: {str(e)}")
+                for chunk in error_chunks:
+                    await message.channel.send(chunk)
         else:
             help_msg = (
                 "知識データが未生成です。まずメッセージ取得・整形を行ってください。\n"
@@ -147,7 +153,9 @@ async def on_message(message):
                 "\n"
                 "詳細は docs/USAGE.md またはREADMEをご覧ください。"
             )
-            await message.channel.send(help_msg)
+            help_chunks = split_message(help_msg)
+            for chunk in help_chunks:
+                await message.channel.send(chunk)
 
 
 if __name__ == "__main__":
