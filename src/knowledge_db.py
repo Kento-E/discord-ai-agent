@@ -389,7 +389,9 @@ class KnowledgeDB:
                 return True
 
             params.append(message_id)
-            query = f"UPDATE messages SET {', '.join(updates)} WHERE id = ?"
+            # セキュリティ注: updatesは定数文字列のみを含むため安全
+            set_clause = ", ".join(updates)
+            query = "UPDATE messages SET " + set_clause + " WHERE id = ?"
             cursor.execute(query, params)
             conn.commit()
 

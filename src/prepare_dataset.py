@@ -49,9 +49,17 @@ def main():
             print("✅ 全てのメッセージに埋め込みが生成済みです")
             return
 
-        # メッセージ本文のみ抽出
-        texts = [msg["content"] for msg in messages if msg["content"].strip()]
-        message_ids = [msg["id"] for msg in messages if msg["content"].strip()]
+        # メッセージ本文のみ抽出（空コンテンツを除外しつつIDと整合性を保持）
+        texts = []
+        message_ids = []
+        for msg in messages:
+            content = msg.get("content", "")
+            if not isinstance(content, str):
+                continue
+            if not content.strip():
+                continue
+            texts.append(content)
+            message_ids.append(msg["id"])
 
     else:
         print("📊 JSONモード（後方互換）")
