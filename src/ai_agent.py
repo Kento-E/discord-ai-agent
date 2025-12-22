@@ -40,7 +40,8 @@ _llm_first_success = False  # LLM初回成功フラグ
 _initialized = False
 _init_lock = threading.Lock()
 _llm_success_lock = threading.Lock()  # LLM成功メッセージ表示用ロック
-_db = None  # データベース接続のキャッシュ
+# データベースインスタンス（接続管理はKnowledgeDBクラス内でコンテキストマネージャにより行われる）
+_db = None
 
 
 def is_initialized():
