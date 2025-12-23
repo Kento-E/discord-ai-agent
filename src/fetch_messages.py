@@ -210,7 +210,7 @@ async def main():
             # データベースまたはJSONに保存
             if db is not None:
                 # データベースに保存（増分更新）
-                print(f"💾 データベースに保存中...")
+                print("💾 データベースに保存中...")
                 inserted, skipped = db.insert_messages_batch(messages)
                 print(f"   新規追加: {inserted}件")
                 print(f"   既存スキップ: {skipped}件")

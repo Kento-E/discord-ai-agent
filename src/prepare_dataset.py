@@ -34,12 +34,12 @@ def main():
     if use_db:
         print("📊 データベースモード: SQLite（増分更新）")
         db = KnowledgeDB(DB_PATH)
-        
+
         # 未生成メッセージを取得
         messages = db.get_messages_without_embeddings()
         total_messages = db.get_message_count()
         existing_embeddings = db.get_embedding_count()
-        
+
         print(f"   メッセージ総数: {total_messages}件")
         print(f"   既存埋め込み: {existing_embeddings}件")
         print(f"   未生成メッセージ: {len(messages)}件")
@@ -99,7 +99,7 @@ def main():
         for message_id, embedding in zip(message_ids, embeddings):
             if db.insert_embedding(message_id, embedding.tolist()):
                 saved_count += 1
-        
+
         total_embeddings = db.get_embedding_count()
         print(f"   新規追加: {saved_count}件")
         print(f"   累積総数: {total_embeddings}件")
