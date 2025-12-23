@@ -24,9 +24,7 @@ class KnowledgeDB:
             db_path: データベースファイルのパス（省略時はdata/knowledge.dbを使用）
         """
         if db_path is None:
-            db_path = os.path.join(
-                os.path.dirname(__file__), "../data/knowledge.db"
-            )
+            db_path = os.path.join(os.path.dirname(__file__), "../data/knowledge.db")
         self.db_path = db_path
         self._ensure_data_directory()
         self._init_database()
@@ -43,7 +41,8 @@ class KnowledgeDB:
             cursor = conn.cursor()
 
             # メッセージテーブル
-            cursor.execute("""
+            cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS messages (
                     id INTEGER PRIMARY KEY,
                     channel_id INTEGER NOT NULL,
@@ -57,35 +56,46 @@ class KnowledgeDB:
                     importance INTEGER DEFAULT 0,
                     created_in_db TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
-            """)
+            """
+            )
 
             # 埋め込みテーブル
-            cursor.execute("""
+            cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS embeddings (
                     message_id INTEGER PRIMARY KEY,
                     embedding_vector TEXT NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (message_id) REFERENCES messages(id)
                 )
-            """)
+            """
+            )
 
             # インデックス作成（検索性能向上）
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_messages_channel_id 
+            cursor.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_messages_channel_id
                 ON messages(channel_id)
-            """)
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_messages_timestamp 
+            """
+            )
+            cursor.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_messages_timestamp
                 ON messages(timestamp)
-            """)
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_messages_category 
+            """
+            )
+            cursor.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_messages_category
                 ON messages(category)
-            """)
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_messages_importance 
+            """
+            )
+            cursor.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_messages_importance
                 ON messages(importance)
-            """)
+            """
+            )
 
             conn.commit()
 
@@ -110,8 +120,8 @@ class KnowledgeDB:
             # 新規挿入
             cursor.execute(
                 """
-                INSERT INTO messages 
-                (id, channel_id, channel_name, author_id, author_name, 
+                INSERT INTO messages
+                (id, channel_id, channel_name, author_id, author_name,
                  content, created_at, timestamp, category, importance)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
@@ -149,9 +159,7 @@ class KnowledgeDB:
 
             for message in messages:
                 # 既存チェック
-                cursor.execute(
-                    "SELECT id FROM messages WHERE id = ?", (message["id"],)
-                )
+                cursor.execute("SELECT id FROM messages WHERE id = ?", (message["id"],))
                 if cursor.fetchone() is not None:
                     skipped += 1
                     continue
@@ -159,8 +167,8 @@ class KnowledgeDB:
                 # 新規挿入
                 cursor.execute(
                     """
-                    INSERT INTO messages 
-                    (id, channel_id, channel_name, author_id, author_name, 
+                    INSERT INTO messages
+                    (id, channel_id, channel_name, author_id, author_name,
                      content, created_at, timestamp, category, importance)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
@@ -296,7 +304,7 @@ class KnowledgeDB:
             cursor = conn.cursor()
 
             query = """
-                SELECT m.content, e.embedding_vector 
+                SELECT m.content, e.embedding_vector
                 FROM messages m
                 INNER JOIN embeddings e ON m.id = e.message_id
                 WHERE 1=1
@@ -399,5 +407,3 @@ class KnowledgeDB:
 
     def close(self):
         """データベース接続を閉じる（通常は不要: context managerを使用）"""
-        pass
-

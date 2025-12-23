@@ -16,9 +16,7 @@ class TestKnowledgeDB(unittest.TestCase):
     def setUp(self):
         """各テスト前の準備"""
         # 一時ファイルでテスト用データベースを作成
-        self.temp_db = tempfile.NamedTemporaryFile(
-            delete=False, suffix=".db"
-        )
+        self.temp_db = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
         self.temp_db.close()
         self.db_path = self.temp_db.name
         self.db = KnowledgeDB(self.db_path)
