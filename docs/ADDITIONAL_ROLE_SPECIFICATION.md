@@ -164,8 +164,6 @@ ADDITIONAL_CHATBOT_ROLE="あなたは業務効率化の専門家です。
 ## 関連ファイル
 
 - 実装: `src/ai_chatbot.py` - `_load_prompts()` および `generate_response_with_llm()` 関数
-- テスト: 
-  - `src/test_additional_role.py` - ADDITIONAL_CHATBOT_ROLE機能の専用テスト
-  - `src/test_prompts_loading.py` - プロンプト読み込みの基本テスト
+- テスト: `src/test_prompts_loading.py` - プロンプト読み込みの基本テスト
 - ワークフロー: `.github/workflows/run-discord-bot.yml`
 - ベースプロンプト: `config/prompts.yaml`
